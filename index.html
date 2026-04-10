@@ -141,6 +141,33 @@ body {
 }
 #theme-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+#header-user-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 150px;
+  margin-left: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+#header-user-badge::before {
+  content: '●';
+  font-size: 8px;
+  color: var(--accent2);
+  flex-shrink: 0;
+}
+
 #mobile-more-wrap { display: none; position: relative; flex-shrink: 0; }
 #mobile-more-btn { min-width: 72px; justify-content: center; }
 #mobile-more-menu {
@@ -809,8 +836,15 @@ input[type=range]::-webkit-slider-thumb {
   }
   #theme-btn,
   #header-lang-toggle,
+  #header-user-badge,
   #sync-indicator,
   #btn-logout { order: 1; }
+  #header-user-badge {
+    margin-left: 0 !important;
+    max-width: 96px;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
   #header-lang-toggle { margin-left: 0 !important; }
   #sync-indicator {
     margin-left: 0 !important;
@@ -924,6 +958,7 @@ input[type=range]::-webkit-slider-thumb {
     <button class="lang-btn" id="header-lang-btn-it" onclick="setLang('it')" title="Italiano" aria-label="Italiano">IT</button>
     <button class="lang-btn" id="header-lang-btn-en" onclick="setLang('en')" title="English" aria-label="English">EN</button>
   </div>
+  <div id="header-user-badge" aria-live="polite"></div>
   <div id="sync-indicator" style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-left:8px;">
     <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#9c9590;display:inline-block;"></span>
     <span id="sync-label">—</span>
@@ -1300,6 +1335,7 @@ const STRINGS = {
     navClients: 'Clients', navSessions: 'Sessions', navTrash: 'Trash',
     navBackup: 'Backup', navSettings: 'Settings', navSearch: 'Search', navHelp: 'Help',
     btnLogout: 'Sign out',
+    userBadgeFallback: 'Account',
     // Clients view
     clientsTitle: 'Clients', clientsSubtitle: 'Clients in active workspace',
     btnAddClient: '＋ Add Client',
@@ -1464,6 +1500,7 @@ const STRINGS = {
     navClients: 'Allievi', navSessions: 'Sessioni', navTrash: 'Cestino',
     navBackup: 'Backup', navSettings: 'Impostazioni', navSearch: 'Cerca', navHelp: 'Guida',
     btnLogout: 'Disconnetti',
+    userBadgeFallback: 'Utente',
     clientsTitle: 'Allievi', clientsSubtitle: 'Clienti nello spazio attivo',
     btnAddClient: '＋ Aggiungi Allievo',
     clientSearchPlaceholder: 'Cerca per nome o etichetta…',
@@ -1692,6 +1729,7 @@ function applyTranslations() {
   document.getElementById('nav-search').textContent       = s.navSearch;
   document.getElementById('nav-help').textContent         = s.navHelp;
   document.getElementById('btn-logout').textContent       = s.btnLogout;
+  updateHeaderUserBadge();
   const moreLabel = currentLang === 'it' ? 'Altro' : 'More';
   const mobileMoreBtn = document.getElementById('mobile-more-btn');
   if (mobileMoreBtn) mobileMoreBtn.textContent = moreLabel;
@@ -2052,26 +2090,52 @@ async function authSignOut() {
   ]); } catch(e) { console.warn('[signOut] server logout skipped:', e.message); }
   _clearTokens();
   currentUser = null;
-  currentClientId = null;
-  currentSessionId = null;
-  editingClientId = null;
-  sessionDraft = {};
   appState = { clients: [], sessions: [], ui: { homeLibrary: [] } };
+  resetUiResidualState();
+  renderClients();
+  updateHeaderUserBadge();
+  resetSyncIndicator();
   const pwEl   = document.getElementById('auth-password');
   const confEl = document.getElementById('auth-confirm');
   if (pwEl)   { pwEl.value   = ''; }
   if (confEl) { confEl.value = ''; }
-  const as = document.getElementById('auth-screen');
-  const sh = document.getElementById('app-shell');
-  const bl = document.getElementById('btn-logout');
-  if (sh) sh.style.display = 'none';
-  if (bl) bl.style.display = 'none';
-  if (as) { as.style.display = 'flex'; }
+  showAuthScreen();
   switchAuthTab('login');
 }
 
 async function authResetPassword(email) {
   await _sbAuth('/recover', { email });
+}
+
+function getCurrentUserEmail() {
+  return currentUser?.email || currentUser?.user_metadata?.email || currentUser?.app_metadata?.email || '';
+}
+function getCurrentUserLabel() {
+  const email = getCurrentUserEmail();
+  return email ? (email.split('@')[0] || email) : t('userBadgeFallback');
+}
+function updateHeaderUserBadge() {
+  const badge = document.getElementById('header-user-badge');
+  if (!badge) return;
+  if (!currentUser) {
+    badge.style.display = 'none';
+    badge.textContent = '';
+    badge.title = '';
+    badge.removeAttribute('aria-label');
+    return;
+  }
+  const email = getCurrentUserEmail();
+  const label = getCurrentUserLabel();
+  badge.textContent = label;
+  badge.title = email || label;
+  badge.setAttribute('aria-label', email || label);
+  badge.style.display = 'inline-flex';
+}
+function resetSyncIndicator() {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (dot) dot.style.background = '#9c9590';
+  if (lbl) lbl.textContent = '—';
 }
 
 // ── SYNC INDICATOR ───────────────────────────────────
@@ -2192,6 +2256,24 @@ let connectModeView = null; // 'front' | 'back'
 let connectFirstMarkerId = null;
 let themeMode = 'auto';
 let currentPalette = 'warm';
+let sessionDraft = {};
+
+function getSessionSortDate(session) {
+  return session?.date || '';
+}
+function getSessionSortCreatedAt(session) {
+  return session?.createdAt || session?.updatedAt || '';
+}
+function compareSessionsDesc(a, b) {
+  const byDate = getSessionSortDate(b).localeCompare(getSessionSortDate(a));
+  if (byDate !== 0) return byDate;
+  return getSessionSortCreatedAt(b).localeCompare(getSessionSortCreatedAt(a));
+}
+function compareSessionsAsc(a, b) {
+  const byDate = getSessionSortDate(a).localeCompare(getSessionSortDate(b));
+  if (byDate !== 0) return byDate;
+  return getSessionSortCreatedAt(a).localeCompare(getSessionSortCreatedAt(b));
+}
 
 function getUserScopedStorageKey(userId = currentUser?.id) {
   return userId ? `${LEGACY_STORAGE_KEY}_${userId}` : `${LEGACY_STORAGE_KEY}_guest`;
@@ -2341,6 +2423,51 @@ function normalizeState() {
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+}
+
+function renderSessionEditorEmptyState() {
+  const container = document.getElementById('session-editor-content');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-title" id="no-session-title">${esc(t('noSessionOpen'))}</div>
+      <p id="no-session-desc">${esc(t('openSessionMsg'))}</p>
+    </div>`;
+}
+
+function resetUiResidualState() {
+  currentClientId = null;
+  currentSessionId = null;
+  editingClientId = null;
+  deleteForeverTargetId = null;
+  connectModeView = null;
+  connectFirstMarkerId = null;
+  sessionDraft = {};
+  skelHistory = { front: [], back: [] };
+  skelFuture = { front: [], back: [] };
+  closeMobileMoreMenu();
+  ['modal-client', 'modal-delete-forever', 'modal-note'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('open');
+  });
+  const confirmDelete = document.getElementById('confirm-delete-cb');
+  if (confirmDelete) confirmDelete.checked = false;
+  ['client-search', 'all-sessions-search', 'global-search-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['tag-filter', 'all-sessions-client'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const clientsView = document.getElementById('view-clients');
+  if (clientsView) clientsView.classList.add('active');
+  syncNavState('clients');
+  renderSessionEditorEmptyState();
+  const profileContent = document.getElementById('profile-content');
+  if (profileContent) profileContent.innerHTML = '';
 }
 
 // ════════════════════════════════════════════════════════
@@ -2623,7 +2750,7 @@ function renderClients() {
 }
 
 function lastSessionDate(clientId) {
-  const sessions = appState.sessions.filter(s => s.clientId === clientId && !s.isTrashed).sort((a,b) => b.date.localeCompare(a.date));
+  const sessions = appState.sessions.filter(s => s.clientId === clientId && !s.isTrashed).sort(compareSessionsDesc);
   return sessions.length ? sessions[0].date : null;
 }
 
@@ -2748,7 +2875,7 @@ function trashClient(clientId) {
 // PROFILE VIEW
 // ════════════════════════════════════════════════════════
 function buildMetricsChart(clientId) {
-  const sessions = getClientSessions(clientId).filter(s => s.metrics && ['comfort','easeOfMovement','breathEase','agency'].some(k => s.metrics[k] != null)).sort((a,b) => a.date.localeCompare(b.date));
+  const sessions = getClientSessions(clientId).filter(s => s.metrics && ['comfort','easeOfMovement','breathEase','agency'].some(k => s.metrics[k] != null)).sort(compareSessionsAsc);
   if (sessions.length < 2) {
     return `<div class="card chart-card"><div class="section-title">${x('chartTitle')}</div><p class="chart-note">${x('chartEmpty')}</p></div>`;
   }
@@ -2799,7 +2926,7 @@ function renderProfile() {
   try {
     const c = appState.clients.find(x => x.id === currentClientId);
     if (!c) { document.getElementById('profile-content').innerHTML = `<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">${t('clientNotFound')}</div></div>`; return; }
-    const sessions = getClientSessions(c.id).sort((a,b) => b.date.localeCompare(a.date));
+    const sessions = getClientSessions(c.id).sort(compareSessionsDesc);
     const tagsHtml = (c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join(' ');
     const notSet = currentLang === 'it' ? 'Non impostato' : 'Not set';
     const usagePill = !isPremiumPlan() && (c.status || 'active') !== 'archived'
@@ -2991,7 +3118,7 @@ function renderSessionEditor() {
       </div>`;
     }).join('');
 
-    const clientSessions = appState.sessions.filter(s => s.clientId === sessionDraft.clientId).sort((a,b) => a.date.localeCompare(b.date));
+    const clientSessions = appState.sessions.filter(s => s.clientId === sessionDraft.clientId).sort(compareSessionsAsc);
     const durationPlaceholder = currentLang === 'it' ? 'es. 60' : 'e.g. 60';
 
     document.getElementById('session-editor-content').innerHTML = `
@@ -3523,7 +3650,7 @@ function updateMarker(view, markerId, field, value) {
 // SESSION TIMELINE (in skeletal map section)
 // ════════════════════════════════════════════════════════
 function buildSessionTimeline() {
-  const clientSessions = appState.sessions.filter(s => s.clientId === sessionDraft.clientId).sort((a,b) => a.date.localeCompare(b.date));
+  const clientSessions = appState.sessions.filter(s => s.clientId === sessionDraft.clientId).sort(compareSessionsAsc);
   if (clientSessions.length <= 1) return '';
 
   const nodes = clientSessions.map((s, i) => {
@@ -3722,7 +3849,7 @@ function renderGlobalSearch() {
   }
 
   const clientResults  = results.filter(r => r.type === 'client');
-  const sessionResults = results.filter(r => r.type === 'session');
+  const sessionResults = results.filter(r => r.type === 'session').sort((a, b) => compareSessionsDesc(a.session, b.session));
   let html = '';
 
   if (clientResults.length > 0) {
@@ -3797,8 +3924,8 @@ function renderAllSessions() {
     });
   }
 
-  // Sort by date desc
-  sessions.sort((a,b) => b.date.localeCompare(a.date));
+  // Sort by date desc, then createdAt desc
+  sessions.sort(compareSessionsDesc);
 
   const list = document.getElementById('all-sessions-list');
   if (!list) return;
@@ -4246,16 +4373,19 @@ function hideAuthScreen() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
   document.getElementById('btn-logout').style.display = '';
+  updateHeaderUserBadge();
 }
 
 async function onSignedIn(user) {
   currentUser = user;
-  hideAuthScreen();
-  updateSyncIndicator('syncing');
+  resetUiResidualState();
   appState = { clients: [], sessions: [], ui: { homeLibrary: [] } };
+  updateHeaderUserBadge();
+  updateSyncIndicator('syncing');
   const loaded = await loadFromCloud();
   if (!loaded) loadState({ allowLegacyMigration: true });
-  renderClients();
+  showView('clients');
+  hideAuthScreen();
   updateSyncIndicator(isOnline ? 'synced' : null);
 }
 
