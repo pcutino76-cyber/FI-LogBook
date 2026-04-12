@@ -1314,10 +1314,23 @@ input[type=range]::-webkit-slider-thumb {
         </div>
       </div>
     </div>
-    <div class="card" style="width:100%;">
+    <div class="card" style="width:100%;margin-bottom:14px;">
       <div class="section-title" id="settings-about-title">—</div>
       <p style="font-size:15px;color:var(--text2);" id="settings-about-desc">—</p>
       <p class="note-small" id="settings-about-note">—</p>
+    </div>
+
+    <!-- CLOSED TEST REFINEMENT: clearer trust and data-use notes for testers -->
+    <div class="card" style="width:100%;">
+      <div class="section-title" id="settings-datause-title">—</div>
+      <p style="font-size:15px;color:var(--text2);line-height:1.65;margin-bottom:10px;" id="settings-datause-intro">—</p>
+      <ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;color:var(--text2);font-size:14px;line-height:1.65;">
+        <li id="settings-datause-point1">—</li>
+        <li id="settings-datause-point2">—</li>
+        <li id="settings-datause-point3">—</li>
+        <li id="settings-datause-point4">—</li>
+        <li id="settings-datause-point5">—</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -1573,7 +1586,7 @@ const STRINGS = {
     previewingSession: 'Previewing',
     noSessionOpen: 'No session open', openSessionMsg: 'Open or create a session from a client profile.',
     // All sessions
-    allSessionsTitle: 'Sessions', allSessionsSubtitle: 'All sessions · sorted by date',
+    allSessionsTitle: 'Sessions', allSessionsSubtitle: 'All sessions across clients · sorted by date',
     searchClientPlaceholder: 'Search client or tag…', allClientsOption: 'All clients',
     noSessionsFound: 'No sessions found', sessionsAppear: 'Sessions appear here once you create them from a client profile.',
     openBtn: 'Open →',
@@ -1590,7 +1603,7 @@ const STRINGS = {
     importJsonBtn: 'Import JSON',
     exportCsvTitle: 'Export CSV', exportCsvDesc: 'Export all sessions as a CSV spreadsheet for analysis.',
     exportCsvBtn: 'Export Sessions CSV',
-    backupNote: '⚠️ Your data is synced to the cloud and saved locally in your browser. Export a backup regularly.',
+    backupNote: '⚠️ Your data remains available in this browser and, when cloud sync is active, can also sync online. Export a JSON backup regularly.',
     // Settings
     settingsTitle: 'Settings', settingsSubtitle: 'Preferences',
     appearanceTitle: 'Appearance', themeLabel: 'Theme',
@@ -1599,10 +1612,18 @@ const STRINGS = {
     paletteWarm: 'Warm Earth', paletteCuoio: 'Leather', paletteInchiostro: 'Midnight', palettePetrolio: 'Teal',
     langLabel: 'Language',
     aboutTitle: 'About',
-    aboutDesc: 'FI Client Logbook — for Feldenkrais Functional Integration practitioners.',
-    aboutNote: 'Your data is securely synced to the cloud and stored locally as an offline copy. Export a backup regularly.',
+    aboutDesc: 'FI Logbook — a lightweight professional workspace for Feldenkrais Functional Integration practitioners.',
+    aboutNote: 'Your data remains available in this browser and, when cloud sync is active, can also sync online. Export JSON regularly to keep an independent backup. © FI Logbook — closed test version, shared for confidential feedback only. Please do not redistribute the link or source files.',
+    // CLOSED TEST REFINEMENT: practical data-use notes
+    dataUseTitle: 'Data, Backup & Use',
+    dataUseIntro: 'A few practical notes for testing and everyday use. This version is shared for confidential feedback only:',
+    dataUsePoint1: 'Each account only accesses its own workspace data.',
+    dataUsePoint2: 'Data remains available in this browser and, when cloud sync is active, can also sync online.',
+    dataUsePoint3: 'During testing, use initials or client codes rather than full identifying details when possible.',
+    dataUsePoint4: 'Export JSON is the recommended backup for keeping an independent copy of your work.',
+    dataUsePoint5: 'Archive frees active workspace slots; Trash is for deleted items; deleting or archiving does not restore created free quota.',
     // Search
-    searchTitle: 'Search', searchSubtitle: 'Search across all clients and sessions',
+    searchTitle: 'Search', searchSubtitle: 'Search across all clients, sessions, notes, and tags',
     searchPlaceholder: 'Search names, notes, tags, goals…',
     searchStart: 'Start typing to search across all clients and sessions.',
     noResults: 'No results found for',
@@ -1615,7 +1636,7 @@ const STRINGS = {
     cfNameLabel: 'Full Name *', cfNamePlaceholder: 'Client name',
     cfTagsLabel: 'Tags (comma separated)', cfTagsPlaceholder: 'e.g. chronic pain, back, senior',
     cfBaselineLabel: 'Baseline Snapshot', cfBaselinePlaceholder: 'Initial postural/functional baseline…',
-    cfNotesLabel: 'General Notes', cfNotesPlaceholder: 'Medical history, context, notes…',
+    cfNotesLabel: 'General Notes', cfNotesPlaceholder: 'Context, relevant history, notes…',
     cancelClientBtn: 'Cancel', saveClientBtn: 'Save Client',
     // Modal: delete forever
     deleteForeverTitle: '⚠️ Delete Forever',
@@ -1636,7 +1657,7 @@ const STRINGS = {
     rememberMe: 'Keep me signed in',
     signInBtn: 'Sign In', createAccountBtn: 'Create Account',
     forgotPassword: 'Forgot password?',
-    securityNote: 'Your data is encrypted and stored securely.',
+    securityNote: 'Closed test access. This workspace is tied to your account. Please keep the link private and export JSON regularly for an independent backup.',
     connectingMsg: 'Connecting…',
     testConnectionBtn: 'Test connection',
     checkInbox: 'Check your inbox',
@@ -1734,7 +1755,7 @@ const STRINGS = {
     currentSession: '← Sessione corrente', restoredSession: '← Sessione corrente ripristinata',
     previewingSession: 'Anteprima',
     noSessionOpen: 'Nessuna sessione aperta', openSessionMsg: 'Apri o crea una sessione dal profilo di un allievo.',
-    allSessionsTitle: 'Sessioni', allSessionsSubtitle: 'Sessioni ordinate per data',
+    allSessionsTitle: 'Sessioni', allSessionsSubtitle: 'Tutte le sessioni dei clienti · ordinate per data',
     searchClientPlaceholder: 'Cerca allievo o etichetta…', allClientsOption: 'Tutti gli allievi',
     noSessionsFound: 'Nessuna sessione trovata', sessionsAppear: 'Le sessioni appaiono qui una volta create dal profilo di un allievo.',
     openBtn: 'Apri →',
@@ -1749,7 +1770,7 @@ const STRINGS = {
     importJsonBtn: 'Importa JSON',
     exportCsvTitle: 'Esporta CSV', exportCsvDesc: 'Esporta tutte le sessioni come foglio CSV per analisi.',
     exportCsvBtn: 'Esporta Sessioni CSV',
-    backupNote: '⚠️ I tuoi dati sono sincronizzati sul cloud e salvati localmente nel browser. Esporta un backup regolarmente.',
+    backupNote: '⚠️ I tuoi dati restano disponibili in questo browser e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Esporta regolarmente un backup JSON.',
     settingsTitle: 'Impostazioni', settingsSubtitle: 'Preferenze',
     appearanceTitle: 'Aspetto', themeLabel: 'Tema',
     themeLightBtn: '☀️ Chiaro', themeDarkBtn: '🌙 Scuro',
@@ -1757,9 +1778,17 @@ const STRINGS = {
     paletteWarm: 'Terra Calda', paletteCuoio: 'Cuoio', paletteInchiostro: 'Inchiostro', palettePetrolio: 'Petrolio',
     langLabel: 'Lingua',
     aboutTitle: 'Informazioni',
-    aboutDesc: 'FI Logbook — Diario delle Integrazioni Funzionali.',
-    aboutNote: 'I tuoi dati sono sincronizzati in modo sicuro sul cloud e archiviati localmente come copia offline. Esporta un backup regolarmente.',
-    searchTitle: 'Cerca', searchSubtitle: 'Cerca tra tutti gli allievi e le sessioni',
+    aboutDesc: 'FI Logbook — uno spazio di lavoro leggero e professionale per practitioner Feldenkrais.',
+    aboutNote: 'I tuoi dati restano disponibili in questo browser e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Esporta regolarmente un JSON per mantenere un backup indipendente. © FI Logbook — versione di test chiuso, condivisa solo per feedback riservato. Ti chiedo di non ridistribuire il link o i file sorgente.',
+    // REFINEMENT CLOSED TEST: note pratiche su dati e uso
+    dataUseTitle: 'Dati, Backup e Uso',
+    dataUseIntro: 'Alcune note pratiche per il test e per l’uso quotidiano. Questa versione è condivisa solo per feedback riservato:',
+    dataUsePoint1: 'Ogni account accede soltanto ai dati del proprio spazio di lavoro.',
+    dataUsePoint2: 'I dati restano disponibili in questo browser e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online.',
+    dataUsePoint3: 'Durante il test è consigliato usare iniziali o codici cliente invece di dati identificativi completi, quando possibile.',
+    dataUsePoint4: 'Export JSON è il backup consigliato per conservare una copia indipendente del lavoro.',
+    dataUsePoint5: 'L’Archivio libera slot nello spazio attivo; il Cestino contiene gli elementi eliminati; cancellare o archiviare non restituisce la quota free già creata.',
+    searchTitle: 'Cerca', searchSubtitle: 'Cerca tra allievi, sessioni, note ed etichette',
     searchPlaceholder: 'Cerca nomi, note, etichette, obiettivi…',
     searchStart: 'Inizia a digitare per cercare tra tutti gli allievi e le sessioni.',
     noResults: 'Nessun risultato per',
@@ -1770,7 +1799,7 @@ const STRINGS = {
     cfNameLabel: 'Nome Completo *', cfNamePlaceholder: 'Nome dell\'allievo',
     cfTagsLabel: 'Etichette (separate da virgola)', cfTagsPlaceholder: 'es. dolore cronico, schiena, anziano',
     cfBaselineLabel: 'Quadro Iniziale', cfBaselinePlaceholder: 'Baseline posturale/funzionale iniziale…',
-    cfNotesLabel: 'Note Generali', cfNotesPlaceholder: 'Anamnesi, contesto, note…',
+    cfNotesLabel: 'Note Generali', cfNotesPlaceholder: 'Contesto, elementi utili, note…',
     cancelClientBtn: 'Annulla', saveClientBtn: 'Salva Allievo',
     deleteForeverTitle: '⚠️ Elimina Definitivamente',
     deleteForeverDesc: 'Questo eliminerà definitivamente l\'allievo e tutte le sue sessioni. Questa azione non può essere annullata.',
@@ -1788,7 +1817,7 @@ const STRINGS = {
     rememberMe: 'Mantieni l\'accesso',
     signInBtn: 'Accedi', createAccountBtn: 'Crea Account',
     forgotPassword: 'Password dimenticata?',
-    securityNote: 'I tuoi dati sono crittografati e archiviati in modo sicuro.',
+    securityNote: 'Accesso per test chiuso. Questo spazio di lavoro è legato al tuo account. Mantieni privato il link ed esporta regolarmente un JSON di backup.',
     connectingMsg: 'Connessione…',
     testConnectionBtn: 'Testa connessione',
     checkInbox: 'Controlla la tua email',
@@ -1987,6 +2016,14 @@ function applyTranslations() {
   document.getElementById('settings-about-title').textContent = s.aboutTitle;
   document.getElementById('settings-about-desc').textContent  = s.aboutDesc;
   document.getElementById('settings-about-note').textContent  = s.aboutNote;
+  // CLOSED TEST REFINEMENT: practical trust and data-use card
+  document.getElementById('settings-datause-title').textContent  = s.dataUseTitle;
+  document.getElementById('settings-datause-intro').textContent  = s.dataUseIntro;
+  document.getElementById('settings-datause-point1').textContent = s.dataUsePoint1;
+  document.getElementById('settings-datause-point2').textContent = s.dataUsePoint2;
+  document.getElementById('settings-datause-point3').textContent = s.dataUsePoint3;
+  document.getElementById('settings-datause-point4').textContent = s.dataUsePoint4;
+  document.getElementById('settings-datause-point5').textContent = s.dataUsePoint5;
 
   // Search
   document.getElementById('search-title').textContent       = s.searchTitle;
@@ -2097,20 +2134,23 @@ function renderHelpContent() {
   const container = document.getElementById('help-content');
   if (!container) return;
   const isIT = currentLang === 'it';
+  // CLOSED TEST REFINEMENT: make limits, trust, and existing navigation tools easier to understand
   const sections = isIT ? [
-    { title: 'Per iniziare', body: 'Crea un cliente nella scheda <strong>Allievi</strong>. Puoi aggiungere nome, tag, baseline e note generali. Dopo il salvataggio, apri il profilo del cliente per <strong>creare e gestire sessioni</strong>, vedere metriche e andamento nel tempo.' },
-    { title: 'Piano free e limiti', body: 'Nel piano free puoi avere fino a <strong>5 clienti nello spazio attivo</strong>, fino a <strong>7 schede cliente create</strong> e fino a <strong>7 sessioni per cliente</strong>, per un <strong>totale complessivo di 35 sessioni create</strong>. I clienti <strong>archiviati</strong> non contano nel limite dello spazio attivo, ma <strong>archiviare o cancellare non restituisce quota free</strong>. Anche se elimini una sessione o una scheda, la quota già consumata non torna disponibile. <strong>Il piano premium è pensato per un uso continuativo senza questi limiti.</strong>' },
-    { title: 'Archivio e Cestino', body: 'La scheda <strong>Archivio</strong> serve a togliere clienti dallo spazio di lavoro attivo senza eliminarli. La scheda <strong>Cestino</strong> serve invece per gli elementi eliminati, con ripristino o eliminazione definitiva.' },
-    { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le note cliniche, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Libreria pratica a casa</strong><br>Puoi salvare un suggerimento ricorrente come template riusabile. <strong>Applica</strong> copia il template selezionato nei campi della sessione corrente, <strong>Salva attuale</strong> salva come template il suggerimento che hai scritto, <strong>Rimuovi</strong> elimina il template selezionato dalla libreria.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
+    { title: 'Per iniziare', body: 'Crea un cliente nella scheda <strong>Allievi</strong>. Puoi aggiungere nome, tag, baseline e note generali. Dopo il salvataggio, apri il profilo del cliente per <strong>creare e gestire sessioni</strong>, vedere metriche, consultare la cronologia e seguire l’andamento nel tempo.' },
+    { title: 'Piano free e limiti', body: 'Nel piano free puoi avere fino a <strong>5 clienti nello spazio attivo</strong>, fino a <strong>7 schede cliente create</strong> e fino a <strong>7 sessioni per cliente</strong>, per un <strong>totale complessivo di 35 sessioni create</strong>. Spostare un cliente in <strong>Archivio</strong> libera uno slot nello spazio attivo, ma <strong>non restituisce quota free già creata</strong>. Anche cancellare una sessione o una scheda non ripristina la quota già consumata. <strong>Il piano premium è pensato per un uso continuativo del lavoro senza questi limiti.</strong>' },
+    { title: 'Archivio e Cestino', body: 'La scheda <strong>Archivio</strong> serve a togliere clienti dallo spazio di lavoro attivo senza eliminarli. La scheda <strong>Cestino</strong> contiene invece gli elementi eliminati, con opzioni di ripristino o eliminazione definitiva.' },
+    { title: 'Ricerca e Sessioni', body: '<strong>Cerca</strong> ti aiuta a trovare rapidamente nomi, note, etichette e obiettivi in tutto lo spazio di lavoro. La vista <strong>Sessioni</strong> raccoglie invece tutte le sessioni dei clienti in ordine di data, così puoi rivederle più velocemente e filtrare per allievo quando serve.' },
+    { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le <strong>note di lavoro</strong>, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Libreria pratica a casa</strong><br>Puoi salvare un suggerimento ricorrente come template riusabile. <strong>Applica</strong> copia il template selezionato nei campi della sessione corrente, <strong>Salva attuale</strong> salva come template il suggerimento che hai scritto, <strong>Rimuovi</strong> elimina il template selezionato dalla libreria.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
     { title: 'Grafico andamento cliente', body: 'Nel profilo cliente compare un piccolo grafico che confronta nel tempo comfort, facilità di movimento, respiro e agency. Per vederlo bene servono almeno due sessioni con metriche compilate.' },
-    { title: 'Backup e sicurezza dati', body: 'I dati restano salvati localmente e, quando il collegamento cloud funziona, vengono sincronizzati online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
+    { title: 'Dati, backup e uso', body: 'Ogni account accede ai dati del proprio spazio di lavoro. Durante il test è consigliato usare <strong>iniziali o codici cliente</strong> invece di dati identificativi completi quando possibile. I dati restano disponibili localmente e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
   ] : [
-    { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, and track the trend over time.' },
-    { title: 'Free plan and limits', body: 'The free plan allows up to <strong>5 clients in the active workspace</strong>, up to <strong>7 client cards created</strong>, and up to <strong>7 sessions per client</strong>, for a <strong>total of 35 created sessions</strong>. <strong>Archived</strong> clients do not count toward the active workspace limit, but <strong>archiving or deleting does not restore free quota</strong>. Even if you delete a session or a client card, consumed quota does not become available again. <strong>The premium plan is designed for ongoing use without these limits.</strong>' },
-    { title: 'Archive & Trash', body: 'The <strong>Archive</strong> tab removes clients from the active workspace without deleting them. The <strong>Trash</strong> tab is for deleted items, with restore or permanent delete.' },
-    { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace clinical notes, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Practice Library</strong><br>You can save a recurring suggestion as a reusable template. <strong>Apply</strong> copies the selected template into the current session fields, <strong>Save current</strong> saves the current suggestion as a template, and <strong>Remove</strong> deletes the selected template from the library.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
+    { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, check session history, and follow the process over time.' },
+    { title: 'Free plan and limits', body: 'The free plan allows up to <strong>5 clients in the active workspace</strong>, up to <strong>7 client cards created</strong>, and up to <strong>7 sessions per client</strong>, for a <strong>total of 35 created sessions</strong>. Moving a client to <strong>Archive</strong> frees an active workspace slot, but <strong>does not restore created free quota</strong>. Deleting a session or a client card also does not restore quota that has already been used. <strong>The premium plan is designed for ongoing professional use without these limits.</strong>' },
+    { title: 'Archive & Trash', body: 'The <strong>Archive</strong> tab removes clients from the active workspace without deleting them. The <strong>Trash</strong> tab contains deleted items, with restore or permanent delete.' },
+    { title: 'Search & Sessions', body: '<strong>Search</strong> helps you quickly find names, notes, tags, and goals across the whole workspace. The <strong>Sessions</strong> view gathers all client sessions in date order, making it easier to review work across clients and filter by client when needed.' },
+    { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace your <strong>working notes</strong>, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Practice Library</strong><br>You can save a recurring suggestion as a reusable template. <strong>Apply</strong> copies the selected template into the current session fields, <strong>Save current</strong> saves the current suggestion as a template, and <strong>Remove</strong> deletes the selected template from the library.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
     { title: 'Client trend chart', body: 'A small chart in the client profile compares comfort, ease of movement, breath ease, and agency over time. You need at least two sessions with completed metrics to see it properly.' },
-    { title: 'Backup & data safety', body: 'Data is kept locally and, when cloud sync is working, also synchronized online. Use <strong>Export JSON</strong> regularly to keep an independent local backup.' }
+    { title: 'Data, backup & use', body: 'Each account only accesses its own workspace data. During testing, it is recommended to use <strong>initials or client codes</strong> rather than full identifying details when possible. Data remains available locally and, when cloud sync is active, can also sync online. Use <strong>Export JSON</strong> regularly to keep an independent local backup.' }
   ];
   container.innerHTML = sections.map(s => `
     <div class="card">
