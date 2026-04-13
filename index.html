@@ -1601,9 +1601,9 @@ const STRINGS = {
     exportJsonBtn: 'Export JSON Backup',
     importJsonTitle: 'Import JSON', importJsonDesc: 'Restore from a backup file. This will replace all current data.',
     importJsonBtn: 'Import JSON',
-    exportCsvTitle: 'Export CSV', exportCsvDesc: 'Export all sessions as a CSV spreadsheet for analysis.',
+    exportCsvTitle: 'Export CSV', exportCsvDesc: 'Export a synthetic CSV summary of sessions for spreadsheet analysis. For a full backup, use JSON.',
     exportCsvBtn: 'Export Sessions CSV',
-    backupNote: '⚠️ Your data remains available in this browser and, when cloud sync is active, can also sync online. Export a JSON backup regularly.',
+    backupNote: '⚠️ JSON is your full backup. CSV is a synthetic session summary for analysis only. Richer printable exports can be added later as an extended or premium export.',
     // Settings
     settingsTitle: 'Settings', settingsSubtitle: 'Preferences',
     appearanceTitle: 'Appearance', themeLabel: 'Theme',
@@ -1768,9 +1768,9 @@ const STRINGS = {
     exportJsonBtn: 'Esporta JSON Backup',
     importJsonTitle: 'Importa JSON', importJsonDesc: 'Ripristina da un file di backup. Questo sostituirà tutti i dati attuali.',
     importJsonBtn: 'Importa JSON',
-    exportCsvTitle: 'Esporta CSV', exportCsvDesc: 'Esporta tutte le sessioni come foglio CSV per analisi.',
+    exportCsvTitle: 'Esporta CSV', exportCsvDesc: 'Esporta un riepilogo sintetico in CSV delle sessioni per analisi su foglio di calcolo. Per un backup completo usa JSON.',
     exportCsvBtn: 'Esporta Sessioni CSV',
-    backupNote: '⚠️ I tuoi dati restano disponibili in questo browser e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Esporta regolarmente un backup JSON.',
+    backupNote: '⚠️ Il JSON è il tuo backup completo. Il CSV è un riepilogo sintetico delle sessioni per analisi. Esportazioni più ricche e stampabili potranno essere aggiunte in seguito come export esteso o premium.',
     settingsTitle: 'Impostazioni', settingsSubtitle: 'Preferenze',
     appearanceTitle: 'Aspetto', themeLabel: 'Tema',
     themeLightBtn: '☀️ Chiaro', themeDarkBtn: '🌙 Scuro',
@@ -2142,6 +2142,7 @@ function renderHelpContent() {
     { title: 'Ricerca e Sessioni', body: '<strong>Cerca</strong> ti aiuta a trovare rapidamente nomi, note, etichette e obiettivi in tutto lo spazio di lavoro. La vista <strong>Sessioni</strong> raccoglie invece tutte le sessioni dei clienti in ordine di data, così puoi rivederle più velocemente e filtrare per allievo quando serve.' },
     { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le <strong>note di lavoro</strong>, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Libreria pratica a casa</strong><br>Puoi salvare un suggerimento ricorrente come template riusabile. <strong>Applica</strong> copia il template selezionato nei campi della sessione corrente, <strong>Salva attuale</strong> salva come template il suggerimento che hai scritto, <strong>Rimuovi</strong> elimina il template selezionato dalla libreria.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
     { title: 'Grafico andamento cliente', body: 'Nel profilo cliente compare un piccolo grafico che confronta nel tempo comfort, facilità di movimento, respiro e agency. Per vederlo bene servono almeno due sessioni con metriche compilate.' },
+    { title: 'Backup ed esportazioni', body: '<strong>Export JSON</strong> è il backup completo dello spazio di lavoro ed è il formato consigliato per conservare tutti i dati. <strong>Export CSV</strong> è invece un riepilogo sintetico delle sessioni pensato per analisi rapide su foglio di calcolo: non include tutta la ricchezza della griglia strutturale, delle note metriche, delle note home o dei dettagli completi di marker e connessioni. Un report più ricco e stampabile potrà essere aggiunto in seguito come esportazione estesa o premium.' },
     { title: 'Dati, backup e uso', body: 'Ogni account accede ai dati del proprio spazio di lavoro. Durante il test è consigliato usare <strong>iniziali o codici cliente</strong> invece di dati identificativi completi quando possibile. I dati restano disponibili localmente e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
   ] : [
     { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, check session history, and follow the process over time.' },
@@ -2150,6 +2151,7 @@ function renderHelpContent() {
     { title: 'Search & Sessions', body: '<strong>Search</strong> helps you quickly find names, notes, tags, and goals across the whole workspace. The <strong>Sessions</strong> view gathers all client sessions in date order, making it easier to review work across clients and filter by client when needed.' },
     { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace your <strong>working notes</strong>, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Practice Library</strong><br>You can save a recurring suggestion as a reusable template. <strong>Apply</strong> copies the selected template into the current session fields, <strong>Save current</strong> saves the current suggestion as a template, and <strong>Remove</strong> deletes the selected template from the library.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
     { title: 'Client trend chart', body: 'A small chart in the client profile compares comfort, ease of movement, breath ease, and agency over time. You need at least two sessions with completed metrics to see it properly.' },
+    { title: 'Backup & exports', body: '<strong>Export JSON</strong> is the full workspace backup and is the recommended format for preserving all data. <strong>Export CSV</strong> is a synthetic session summary meant for quick spreadsheet analysis: it does not include the full richness of the structural grid, metric notes, full home notes, or complete marker and connection details. A richer printable report can be added later as an extended or premium export.' },
     { title: 'Data, backup & use', body: 'Each account only accesses its own workspace data. During testing, it is recommended to use <strong>initials or client codes</strong> rather than full identifying details when possible. Data remains available locally and, when cloud sync is active, can also sync online. Use <strong>Export JSON</strong> regularly to keep an independent local backup.' }
   ];
   container.innerHTML = sections.map(s => `
@@ -4293,10 +4295,24 @@ function deleteSessionForever(sessionId) {
 function restoreClient(clientId) {
   try {
     const idx = appState.clients.findIndex(c => c.id === clientId);
-    if (idx !== -1) { appState.clients[idx].isTrashed = false; appState.clients[idx].trashedAt = null; }
+    if (idx === -1) return;
+    const client = appState.clients[idx];
+    const targetStatus = client.status || 'active';
+
+    // FREE PLAN CONSISTENCY: restoring a trashed active client must respect active workspace limits.
+    // Archived clients can be restored to archive without consuming an active slot.
+    if (targetStatus !== 'archived' && !canActivateClient(clientId)) {
+      showToast(x('freeClientLimitReached'), 'error');
+      return;
+    }
+
+    appState.clients[idx].isTrashed = false;
+    appState.clients[idx].trashedAt = null;
     saveState();
     showToast(t('clientRestored'), 'success');
     renderTrash();
+    renderClients();
+    renderArchive();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
