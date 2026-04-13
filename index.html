@@ -503,6 +503,8 @@ input[type=range]::-webkit-slider-thumb {
 .trash-info { flex: 1; }
 .trash-name { font-family: var(--font-serif); font-size: 16px; color: var(--red); }
 .trash-meta { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
+.trash-kind-badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px; border:1px solid var(--border); background: var(--surface2); color: var(--text2); }
+.trash-section-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text3); margin: 4px 0 10px; }
 
 /* ─── BACKUP ─── */
 .backup-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 14px; width: 100%; }
@@ -1594,7 +1596,7 @@ const STRINGS = {
     trashTitle: 'Trash', trashSubtitle: 'Deleted items can be restored or removed permanently',
     noTrashedClients: 'No trashed clients.', noTrashedSessions: 'No trashed sessions.',
     restoreBtn: '↩ Restore', deleteForeverBtn: '✕ Delete Forever',
-    deletedOn: 'Deleted',
+    deletedOn: 'Deleted', trashClientsSection: 'Client records', trashSessionsSection: 'Sessions', trashClientBadge: 'Client record', trashSessionBadge: 'Session', sessionDateLabel: 'Session date',
     // Backup
     backupTitle: 'Backup & Export', backupSubtitle: 'Manage your data',
     exportJsonTitle: 'Export JSON', exportJsonDesc: 'Export all clients and sessions as a JSON file. Use this to back up your data regularly.',
@@ -1762,7 +1764,7 @@ const STRINGS = {
     trashTitle: 'Cestino', trashSubtitle: 'Gli elementi eliminati possono essere ripristinati o rimossi definitivamente',
     noTrashedClients: 'Nessun allievo nel cestino.', noTrashedSessions: 'Nessuna sessione nel cestino.',
     restoreBtn: '↩ Ripristina', deleteForeverBtn: '✕ Elimina Definitivamente',
-    deletedOn: 'Eliminato',
+    deletedOn: 'Eliminato', trashClientsSection: 'Schede cliente', trashSessionsSection: 'Sessioni', trashClientBadge: 'Scheda cliente', trashSessionBadge: 'Sessione', sessionDateLabel: 'Data sessione',
     backupTitle: 'Backup ed Esportazione', backupSubtitle: 'Gestisci i tuoi dati',
     exportJsonTitle: 'Esporta JSON', exportJsonDesc: 'Esporta tutti gli allievi e le sessioni come file JSON. Usalo per fare backup regolari.',
     exportJsonBtn: 'Esporta JSON Backup',
@@ -4210,6 +4212,7 @@ function renderTrash() {
   const trashedSessions = appState.sessions.filter(s => s.isTrashed);
   let html = '';
 
+  html += `<div class="trash-section-title">${t('trashClientsSection')}</div>`;
   if (trashedClients.length === 0) {
     html += `<p class="note-small" style="margin-bottom:24px;">${t('noTrashedClients')}</p>`;
   } else {
@@ -4222,6 +4225,7 @@ function renderTrash() {
       return `<div class="trash-card">
         <div class="trash-avatar">${esc(c.name.charAt(0))}</div>
         <div class="trash-info">
+          <div class="trash-kind-badge">${t('trashClientBadge')}</div>
           <div class="trash-name">${esc(c.name)}</div>
           <div class="trash-meta">${t('deletedOn')} ${trashedDate} · ${sessStr}</div>
         </div>
@@ -4234,6 +4238,7 @@ function renderTrash() {
   }
 
   html += `<div style="height:16px;"></div>`;
+  html += `<div class="trash-section-title">${t('trashSessionsSection')}</div>`;
   if (trashedSessions.length === 0) {
     html += `<p class="note-small">${t('noTrashedSessions')}</p>`;
   } else {
@@ -4243,8 +4248,9 @@ function renderTrash() {
       return `<div class="trash-card">
         <div class="trash-avatar" style="font-size:15px;">📋</div>
         <div class="trash-info">
-          <div class="trash-name" style="font-size:14px;">${client ? esc(client.name) : t('unknownClient')} · ${s.date}</div>
-          <div class="trash-meta">${t('deletedOn')} ${trashedDate}${s.studentRequestGoal ? ' · ' + esc(s.studentRequestGoal.substring(0,50)) : ''}</div>
+          <div class="trash-kind-badge">${t('trashSessionBadge')}</div>
+          <div class="trash-name" style="font-size:14px;">${client ? esc(client.name) : t('unknownClient')}</div>
+          <div class="trash-meta">${t('sessionDateLabel')}: ${s.date} · ${t('deletedOn')} ${trashedDate}${s.studentRequestGoal ? ' · ' + esc(s.studentRequestGoal.substring(0,50)) : ''}</div>
         </div>
         <div class="btn-group">
           <button class="btn btn-secondary btn-sm" data-action="restore-session" data-id="${s.id}">${t('restoreBtn')}</button>
