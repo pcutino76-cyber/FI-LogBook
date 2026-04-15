@@ -1701,6 +1701,8 @@ const STRINGS = {
     reportEntitlementWeak: 'Premium check fallback active: server entitlement endpoint not configured yet.',
     reportEntitlementOffline: 'Offline: plan check uses local account metadata.',
     reportNoData: 'Nothing to export for this client yet.',
+    reportEmptyPlaceholder: 'Not provided',
+    reportPopupBlocked: 'Popup blocked. Please allow popups for PDF export.',
     dataImported: 'Data imported successfully',
     importConfirm: 'This will replace ALL current data. Continue?',
     confirmCheckbox: 'Please confirm the checkbox first',
@@ -1870,6 +1872,8 @@ const STRINGS = {
     reportEntitlementWeak: 'Controllo premium in fallback: endpoint server entitlement non ancora configurato.',
     reportEntitlementOffline: 'Offline: il controllo piano usa i metadati locali dell’account.',
     reportNoData: 'Nessun dato da esportare per questo cliente.',
+    reportEmptyPlaceholder: 'Non compilato',
+    reportPopupBlocked: 'Popup bloccato. Consenti i popup per esportare il PDF.',
     dataImported: 'Dati importati con successo',
     importConfirm: 'Questo sostituirà TUTTI i dati attuali. Continuare?',
     confirmCheckbox: 'Spunta prima la casella di conferma',
@@ -4568,23 +4572,93 @@ function buildClientReportPayload(clientId) {
 }
 
 function reportField(label, value) {
-  if (!value) return '';
-  return `<div class="rf"><div class="rl">${label}</div><div class="rv">${esc(value)}</div></div>`;
+  const hasValue = value != null && String(value).trim() !== '';
+  return `<div class="rf"><div class="rl">${label}</div><div class="rv${hasValue ? '' : ' is-empty'}">${hasValue ? esc(value) : esc(t('reportEmptyPlaceholder'))}</div></div>`;
 }
 
 function metricCell(label, value) {
   return `<div class="metric"><span>${label}</span><strong>${value == null ? '—' : value}</strong></div>`;
 }
 
+function buildReportMetricChartHtml(sessions) {
+  const metricKeys = ['comfort', 'easeOfMovement', 'breathEase', 'agency'];
+  const metricColors = {
+    comfort: '#1e3d5c',
+    easeOfMovement: '#2d6a4f',
+    breathEase: '#7a5c2e',
+    agency: '#6f4ea1'
+  };
+  const metricLabels = {
+    comfort: currentLang === 'it' ? 'Comfort' : 'Comfort',
+    easeOfMovement: currentLang === 'it' ? 'Facilità movimento' : 'Ease of movement',
+    breathEase: currentLang === 'it' ? 'Respiro' : 'Breath',
+    agency: currentLang === 'it' ? 'Agency / autonomia' : 'Agency / autonomy'
+  };
+
+  const scoredSessions = sessions.filter(s => metricKeys.some(k => s.metrics?.[k] != null));
+  if (scoredSessions.length < 2) return '';
+
+  const w = 860, h = 250, pl = 44, pr = 18, pt = 12, pb = 28;
+  const xFor = i => pl + ((w - pl - pr) * (scoredSessions.length === 1 ? 0 : i / (scoredSessions.length - 1)));
+  const yFor = v => pt + ((10 - Number(v)) / 10) * (h - pt - pb);
+
+  const yTicks = [0, 2, 4, 6, 8, 10].map(v => `
+    <line x1="${pl}" y1="${yFor(v)}" x2="${w - pr}" y2="${yFor(v)}" stroke="#d9e0ea" stroke-width="1"/>
+    <text x="${pl - 8}" y="${yFor(v) + 4}" text-anchor="end" font-size="10" fill="#607286">${v}</text>
+  `).join('');
+
+  const xTicks = scoredSessions.map((s, i) => `
+    <text x="${xFor(i)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="#607286">#${i + 1}</text>
+  `).join('');
+
+  const paths = metricKeys.map(key => {
+    const points = scoredSessions.map((s, i) => {
+      const val = s.metrics?.[key];
+      return val == null ? null : { x: xFor(i), y: yFor(val), v: Number(val) };
+    });
+    const segments = [];
+    let current = [];
+    points.forEach(p => {
+      if (p) current.push(p);
+      else if (current.length) { segments.push(current); current = []; }
+    });
+    if (current.length) segments.push(current);
+    const pathD = segments.map(seg => seg.map((p, idx) => `${idx === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')).join(' ');
+    const circles = points.filter(Boolean).map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${metricColors[key]}"/>`).join('');
+    return `${pathD ? `<path d="${pathD}" fill="none" stroke="${metricColors[key]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>` : ''}${circles}`;
+  }).join('');
+
+  const legend = metricKeys.map(key => `
+    <span class="legend-item"><span class="swatch" style="background:${metricColors[key]};"></span>${metricLabels[key]}</span>
+  `).join('');
+
+  return `
+    <section class="card">
+      <h3>${currentLang === 'it' ? 'Grafico metriche stampabile' : 'Printable metrics chart'}</h3>
+      <div class="muted">${currentLang === 'it' ? 'Sessioni con metriche:' : 'Scored sessions:'} ${scoredSessions.length}</div>
+      <div class="chart-wrap">
+        <svg viewBox="0 0 ${w} ${h}" width="100%" height="auto" role="img" aria-label="${currentLang === 'it' ? 'Andamento metriche cliente' : 'Client metrics trend'}">
+          <rect x="${pl}" y="${pt}" width="${w - pl - pr}" height="${h - pt - pb}" fill="#fbfcfe" stroke="#d9e0ea"/>
+          ${yTicks}
+          ${xTicks}
+          ${paths}
+        </svg>
+      </div>
+      <div class="legend">${legend}</div>
+    </section>
+  `;
+}
+
 function buildClientReportHtml(payload) {
   const c = payload.client;
   const s = payload.summary;
   const tags = (c.tags || []).length ? (c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('') : `<span class="muted">—</span>`;
+  const metricChartHtml = buildReportMetricChartHtml(payload.sessions);
   const sessionsHtml = payload.sessions.map(item => `
     <section class="session">
       <div class="session-head">
         <h4>${currentLang === 'it' ? 'Sessione' : 'Session'} ${item.n} · ${esc(item.date)}</h4>
-        <div class="muted">${item.duration ? esc(String(item.duration) + ' min') : ''}${item.context ? ' · ' + esc(item.context) : ''}</div>
+        <div class="muted">${item.duration ? esc(String(item.duration) + ' min') : esc(t('reportEmptyPlaceholder'))}${item.context ? ' · ' + esc(item.context) : ''}</div>
       </div>
       <div class="metrics-row">
         ${metricCell(currentLang === 'it' ? 'Comfort' : 'Comfort', item.metrics.comfort)}
@@ -4626,6 +4700,11 @@ function buildClientReportHtml(payload) {
       .rf{margin-top:8px}
       .rl{font-size:11px;color:#5f6b7a;text-transform:uppercase;letter-spacing:.05em}
       .rv{font-size:13px;white-space:pre-wrap}
+      .rv.is-empty{color:#8ea0b4;font-style:italic}
+      .chart-wrap{margin-top:10px;border:1px solid #d7dde6;border-radius:8px;padding:8px;background:#fff}
+      .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+      .legend-item{display:inline-flex;align-items:center;gap:6px;border:1px solid #d7dde6;border-radius:999px;padding:3px 9px;font-size:11px;color:#334155}
+      .swatch{width:10px;height:10px;border-radius:50%;display:inline-block}
       .footer{margin-top:16px;font-size:11px;color:#5f6b7a}
       @media print{ body{padding:14mm} .session{page-break-inside:avoid} }
     </style>
@@ -4640,8 +4719,8 @@ function buildClientReportHtml(payload) {
 
     <section class="card">
       <h3>${currentLang === 'it' ? 'Overview cliente' : 'Client overview'}</h3>
-      ${reportField(currentLang === 'it' ? 'Quadro iniziale / baseline' : 'Baseline snapshot', c.baselineSnapshot || '')}
-      ${reportField(currentLang === 'it' ? 'Note generali rilevanti' : 'Relevant general notes', c.generalNotes || '')}
+      ${reportField(currentLang === 'it' ? 'Quadro iniziale / baseline' : 'Baseline snapshot', c.baselineSnapshot)}
+      ${reportField(currentLang === 'it' ? 'Note generali rilevanti' : 'Relevant general notes', c.generalNotes)}
     </section>
 
     <section class="card">
@@ -4658,6 +4737,8 @@ function buildClientReportHtml(payload) {
       </div>
     </section>
 
+    ${metricChartHtml}
+
     <section>
       <h3>${currentLang === 'it' ? 'Cronologia sessioni' : 'Sessions chronology'}</h3>
       ${sessionsHtml || `<div class="card muted">${t('reportNoData')}</div>`}
@@ -4670,10 +4751,20 @@ function buildClientReportHtml(payload) {
 
 async function exportClientReportPDF(clientId = currentClientId) {
   if (!clientId) { showToast(t('reportNeedsClient'), 'error'); return; }
+  const win = window.open('about:blank', '_blank', 'width=1100,height=860');
+  if (!win) {
+    showToast(t('reportPopupBlocked'), 'error');
+    return;
+  }
+  win.document.open();
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>FI Logbook</title></head><body style="font-family:Arial,sans-serif;padding:24px;color:#334155;">${esc(currentLang === 'it' ? 'Preparazione report in corso…' : 'Preparing report…')}</body></html>`);
+  win.document.close();
+
   const entitlement = await verifyPremiumEntitlementForPdf();
   if (!entitlement.allowed) {
     showToast(t('reportPremiumOnly'), 'error', 4200);
     showToast(t('reportPremiumCta'), 'info', 6200);
+    win.close();
     return;
   }
   if (entitlement.mode === 'metadata-fallback') showToast(t('reportEntitlementWeak'), 'info', 4200);
@@ -4682,15 +4773,11 @@ async function exportClientReportPDF(clientId = currentClientId) {
   const payload = buildClientReportPayload(clientId);
   if (!payload || (!payload.client.baselineSnapshot && !payload.client.generalNotes && payload.sessions.length === 0)) {
     showToast(t('reportNoData'), 'error');
+    win.close();
     return;
   }
 
   const reportHtml = buildClientReportHtml(payload);
-  const win = window.open('', '_blank', 'width=1100,height=860');
-  if (!win) {
-    showToast('Popup blocked. Please allow popups for PDF export.', 'error');
-    return;
-  }
   win.document.open();
   win.document.write(reportHtml);
   win.document.close();
