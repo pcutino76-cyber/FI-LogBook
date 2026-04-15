@@ -1249,6 +1249,12 @@ input[type=range]::-webkit-slider-thumb {
       <div class="backup-desc" id="backup-csv-desc">—</div>
       <button class="btn btn-secondary" onclick="exportCSV()" id="btn-export-csv">—</button>
     </div>
+    <div class="backup-card">
+      <div class="backup-icon">📄</div>
+      <div class="backup-title" id="backup-pdf-title">—</div>
+      <div class="backup-desc" id="backup-pdf-desc">—</div>
+      <button class="btn btn-secondary" onclick="showView('clients')" id="btn-open-pdf-from-client">—</button>
+    </div>
     <p class="note-small" style="margin-top:8px;" id="backup-note">—</p>
   </div>
 </div>
@@ -1605,7 +1611,10 @@ const STRINGS = {
     importJsonBtn: 'Import JSON',
     exportCsvTitle: 'Export CSV', exportCsvDesc: 'Export a synthetic CSV summary of sessions for spreadsheet analysis. For a full backup, use JSON.',
     exportCsvBtn: 'Export Sessions CSV',
-    backupNote: '⚠️ JSON is your full backup. CSV is a synthetic session summary for analysis only. Richer printable exports can be added later as an extended or premium export.',
+    exportPdfTitle: 'Client Report PDF (Premium)',
+    exportPdfDesc: 'Generate a complete printable client report from a client profile (baseline, notes, timeline, follow-up, home practice, metrics trend).',
+    exportPdfFromClientBtn: 'Open Clients to generate report',
+    backupNote: 'JSON = full backup. CSV = synthetic table summary. Client Report PDF = complete printable summary (Premium).',
     // Settings
     settingsTitle: 'Settings', settingsSubtitle: 'Preferences',
     appearanceTitle: 'Appearance', themeLabel: 'Theme',
@@ -1684,6 +1693,23 @@ const STRINGS = {
     connectionAdded: 'Connection added',
     noteSaved: 'Note saved',
     jsonExported: 'JSON exported', csvExported: 'CSV exported',
+    reportPdfReady: 'Client Report PDF ready',
+    reportOpenPrintDialog: 'Use Save as PDF in the print dialog.',
+    reportNeedsClient: 'Open a client profile first to generate the report.',
+    reportPremiumOnly: 'Client Report PDF is available on Premium plan.',
+    reportPremiumCta: 'For continuous professional use, Premium unlocks complete printable client reporting.',
+    reportEntitlementWeak: 'Premium check fallback active: server entitlement endpoint not configured yet.',
+    reportEntitlementOffline: 'Offline: plan check uses local account metadata.',
+    reportNoData: 'Nothing to export for this client yet.',
+    reportMissingValue: 'Not recorded',
+    reportSectionOverview: 'Client overview',
+    reportSectionTrend: 'Trend summary over time',
+    reportSectionChart: 'Metrics trend chart',
+    reportSectionSessions: 'Sessions chronology',
+    reportGeneratedOn: 'Generated on',
+    reportStatusLabel: 'Status',
+    reportTotalSessionsLabel: 'Total sessions',
+    reportPeriodLabel: 'Period',
     dataImported: 'Data imported successfully',
     importConfirm: 'This will replace ALL current data. Continue?',
     confirmCheckbox: 'Please confirm the checkbox first',
@@ -1772,7 +1798,10 @@ const STRINGS = {
     importJsonBtn: 'Importa JSON',
     exportCsvTitle: 'Esporta CSV', exportCsvDesc: 'Esporta un riepilogo sintetico in CSV delle sessioni per analisi su foglio di calcolo. Per un backup completo usa JSON.',
     exportCsvBtn: 'Esporta Sessioni CSV',
-    backupNote: '⚠️ Il JSON è il tuo backup completo. Il CSV è un riepilogo sintetico delle sessioni per analisi. Esportazioni più ricche e stampabili potranno essere aggiunte in seguito come export esteso o premium.',
+    exportPdfTitle: 'Report Cliente PDF (Premium)',
+    exportPdfDesc: 'Genera un report cliente completo e stampabile dal profilo cliente (baseline, note, cronologia, follow-up, pratica a casa, trend metriche).',
+    exportPdfFromClientBtn: 'Apri Allievi per generare report',
+    backupNote: 'JSON = backup completo. CSV = riepilogo tabellare sintetico. Report Cliente PDF = sintesi completa stampabile (Premium).',
     settingsTitle: 'Impostazioni', settingsSubtitle: 'Preferenze',
     appearanceTitle: 'Aspetto', themeLabel: 'Tema',
     themeLightBtn: '☀️ Chiaro', themeDarkBtn: '🌙 Scuro',
@@ -1842,6 +1871,23 @@ const STRINGS = {
     connectionAdded: 'Connessione aggiunta',
     noteSaved: 'Nota salvata',
     jsonExported: 'JSON esportato', csvExported: 'CSV esportato',
+    reportPdfReady: 'Report Cliente PDF pronto',
+    reportOpenPrintDialog: 'Usa Salva come PDF dalla finestra di stampa.',
+    reportNeedsClient: 'Apri prima il profilo di un cliente per generare il report.',
+    reportPremiumOnly: 'Il Report Cliente PDF è disponibile nel piano Premium.',
+    reportPremiumCta: 'Per un uso professionale continuativo, Premium sblocca report cliente completi e stampabili.',
+    reportEntitlementWeak: 'Controllo premium in fallback: endpoint server entitlement non ancora configurato.',
+    reportEntitlementOffline: 'Offline: il controllo piano usa i metadati locali dell’account.',
+    reportNoData: 'Nessun dato da esportare per questo cliente.',
+    reportMissingValue: 'Non compilato',
+    reportSectionOverview: 'Overview cliente',
+    reportSectionTrend: 'Sintesi andamento nel tempo',
+    reportSectionChart: 'Grafico andamento metriche',
+    reportSectionSessions: 'Cronologia sessioni',
+    reportGeneratedOn: 'Generato il',
+    reportStatusLabel: 'Stato',
+    reportTotalSessionsLabel: 'Sessioni totali',
+    reportPeriodLabel: 'Periodo',
     dataImported: 'Dati importati con successo',
     importConfirm: 'Questo sostituirà TUTTI i dati attuali. Continuare?',
     confirmCheckbox: 'Spunta prima la casella di conferma',
@@ -1878,7 +1924,10 @@ const EXTRA_STRINGS = {
     homeLibraryApply: 'Apply', homeLibrarySave: 'Save current', homeLibraryRemove: 'Remove',
     homeTemplateSaved: 'Home practice saved to library', homeTemplateRemoved: 'Template removed from library',
     homeTemplateApplied: 'Template applied to current session', homeTemplatePrompt: 'Name this reusable home practice',
-    homeTemplateEmpty: 'Write a suggestion before saving it to the library.'
+    homeTemplateEmpty: 'Write a suggestion before saving it to the library.',
+    pdfReportBtn: '📄 Client Report PDF',
+    pdfLockedBtn: '📄 Client Report PDF (Premium)',
+    pdfPremiumBadge: 'Premium report'
   },
   it: {
     navArchive: 'Archivio', archiveTitle: 'Archivio', archiveSubtitle: 'Clienti archiviati fuori dallo spazio attivo',
@@ -1897,7 +1946,10 @@ const EXTRA_STRINGS = {
     homeLibraryApply: 'Applica', homeLibrarySave: 'Salva attuale', homeLibraryRemove: 'Rimuovi',
     homeTemplateSaved: 'Pratica a casa salvata in libreria', homeTemplateRemoved: 'Template rimosso dalla libreria',
     homeTemplateApplied: 'Template applicato alla sessione corrente', homeTemplatePrompt: 'Dai un nome a questa pratica riusabile',
-    homeTemplateEmpty: 'Scrivi prima un suggerimento da salvare in libreria.'
+    homeTemplateEmpty: 'Scrivi prima un suggerimento da salvare in libreria.',
+    pdfReportBtn: '📄 Report Cliente PDF',
+    pdfLockedBtn: '📄 Report Cliente PDF (Premium)',
+    pdfPremiumBadge: 'Report Premium'
   }
 };
 function x(key) {
@@ -1999,6 +2051,9 @@ function applyTranslations() {
   document.getElementById('backup-csv-title').textContent  = s.exportCsvTitle;
   document.getElementById('backup-csv-desc').textContent   = s.exportCsvDesc;
   document.getElementById('btn-export-csv').textContent    = s.exportCsvBtn;
+  document.getElementById('backup-pdf-title').textContent  = s.exportPdfTitle;
+  document.getElementById('backup-pdf-desc').textContent   = s.exportPdfDesc;
+  document.getElementById('btn-open-pdf-from-client').textContent = s.exportPdfFromClientBtn;
   document.getElementById('backup-note').textContent       = s.backupNote;
 
   // Settings
@@ -2144,7 +2199,7 @@ function renderHelpContent() {
     { title: 'Ricerca e Sessioni', body: '<strong>Cerca</strong> ti aiuta a trovare rapidamente nomi, note, etichette e obiettivi in tutto lo spazio di lavoro. La vista <strong>Sessioni</strong> raccoglie invece tutte le sessioni dei clienti in ordine di data, così puoi rivederle più velocemente e filtrare per allievo quando serve.' },
     { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le <strong>note di lavoro</strong>, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Libreria pratica a casa</strong><br>Puoi salvare un suggerimento ricorrente come template riusabile. <strong>Applica</strong> copia il template selezionato nei campi della sessione corrente, <strong>Salva attuale</strong> salva come template il suggerimento che hai scritto, <strong>Rimuovi</strong> elimina il template selezionato dalla libreria.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
     { title: 'Grafico andamento cliente', body: 'Nel profilo cliente compare un piccolo grafico che confronta nel tempo comfort, facilità di movimento, respiro e agency. Per vederlo bene servono almeno due sessioni con metriche compilate.' },
-    { title: 'Backup ed esportazioni', body: '<strong>Export JSON</strong> è il backup completo dello spazio di lavoro ed è il formato consigliato per conservare tutti i dati. <strong>Export CSV</strong> è invece un riepilogo sintetico delle sessioni pensato per analisi rapide su foglio di calcolo: non include tutta la ricchezza della griglia strutturale, delle note metriche, delle note home o dei dettagli completi di marker e connessioni. Un report più ricco e stampabile potrà essere aggiunto in seguito come esportazione estesa o premium.' },
+    { title: 'Backup ed esportazioni', body: '<strong>Export JSON</strong> è il backup completo dello spazio di lavoro ed è il formato consigliato per conservare tutti i dati. <strong>Export CSV</strong> è un riepilogo sintetico delle sessioni pensato per analisi rapide su foglio di calcolo. <strong>Report Cliente PDF</strong> è la scheda completa e stampabile del cliente, disponibile nel piano premium e generabile dal profilo cliente.' },
     { title: 'Dati, backup e uso', body: 'Ogni account accede ai dati del proprio spazio di lavoro. Durante il test è consigliato usare <strong>iniziali o codici cliente</strong> invece di dati identificativi completi quando possibile. I dati restano disponibili localmente e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
   ] : [
     { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, check session history, and follow the process over time.' },
@@ -2153,7 +2208,7 @@ function renderHelpContent() {
     { title: 'Search & Sessions', body: '<strong>Search</strong> helps you quickly find names, notes, tags, and goals across the whole workspace. The <strong>Sessions</strong> view gathers all client sessions in date order, making it easier to review work across clients and filter by client when needed.' },
     { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace your <strong>working notes</strong>, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Practice Library</strong><br>You can save a recurring suggestion as a reusable template. <strong>Apply</strong> copies the selected template into the current session fields, <strong>Save current</strong> saves the current suggestion as a template, and <strong>Remove</strong> deletes the selected template from the library.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
     { title: 'Client trend chart', body: 'A small chart in the client profile compares comfort, ease of movement, breath ease, and agency over time. You need at least two sessions with completed metrics to see it properly.' },
-    { title: 'Backup & exports', body: '<strong>Export JSON</strong> is the full workspace backup and is the recommended format for preserving all data. <strong>Export CSV</strong> is a synthetic session summary meant for quick spreadsheet analysis: it does not include the full richness of the structural grid, metric notes, full home notes, or complete marker and connection details. A richer printable report can be added later as an extended or premium export.' },
+    { title: 'Backup & exports', body: '<strong>Export JSON</strong> is the full workspace backup and the recommended format for preserving all data. <strong>Export CSV</strong> is a synthetic session summary for quick spreadsheet analysis. <strong>Client Report PDF</strong> is the complete printable client summary, available on premium plan and generated from the client profile.' },
     { title: 'Data, backup & use', body: 'Each account only accesses its own workspace data. During testing, it is recommended to use <strong>initials or client codes</strong> rather than full identifying details when possible. Data remains available locally and, when cloud sync is active, can also sync online. Use <strong>Export JSON</strong> regularly to keep an independent local backup.' }
   ];
   container.innerHTML = sections.map(s => `
@@ -2170,6 +2225,9 @@ function renderHelpContent() {
 // ════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://pmujidhqjyzavhvhbzkm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_fWBTYbTO8hv6DU__MSe_RA_EwYhYEMd';
+// Optional hardening endpoint (Supabase Edge Function): return JSON { allowed: boolean }.
+// Keep empty if not deployed yet; client falls back to account metadata check.
+const PREMIUM_CHECK_FN_PATH = '';
 
 let _accessToken  = null;
 let _refreshToken = null;
@@ -3191,6 +3249,9 @@ function renderProfile() {
     const newSessionDisabled = !canCreateSessionForClient(c.id)
       ? `disabled title="${x('freeSessionLimitReached')}" style="opacity:.65;cursor:not-allowed;"`
       : '';
+    const pdfBtn = isPremiumPlan()
+      ? `<button class="btn btn-secondary" onclick="exportClientReportPDF('${c.id}')">${x('pdfReportBtn')}</button>`
+      : `<button class="btn btn-secondary" onclick="exportClientReportPDF('${c.id}')" title="${t('reportPremiumOnly')}" style="opacity:.82;">${x('pdfLockedBtn')}</button>`;
 
     document.getElementById('profile-content').innerHTML = `
       <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;width:100%;">
@@ -3202,6 +3263,7 @@ function renderProfile() {
         <div class="btn-group">
           ${archiveBtn}
           <button class="btn btn-secondary" onclick="openEditClient('${c.id}')">${t('editProfile')}</button>
+          ${pdfBtn}
           <button class="btn btn-primary" onclick="newSession()" ${newSessionDisabled}>${t('newSession')}</button>
           <button class="btn btn-danger" onclick="trashClient('${c.id}')" title="${x('moveClientToTrash')}" aria-label="${x('moveClientToTrash')}">🗑️ ${t('deleteClientShort')}</button>
         </div>
@@ -4404,6 +4466,340 @@ function exportCSV() {
     a.click(); URL.revokeObjectURL(url);
     showToast(t('csvExported') + ' (' + rows.length + ')', 'success');
   } catch(e) { showToast('CSV error: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════
+// PREMIUM CLIENT REPORT PDF
+// ════════════════════════════════════════════════════════
+async function verifyPremiumEntitlementForPdf() {
+  // Step 1: refresh user metadata from server when possible.
+  if (isOnline && _accessToken) {
+    try {
+      const user = await authGetUser();
+      if (user && !user.error) currentUser = user;
+    } catch(e) { /* Fallback handled below */ }
+  }
+
+  // Step 2 (stronger): optional server-side entitlement endpoint.
+  if (PREMIUM_CHECK_FN_PATH && isOnline && _accessToken) {
+    try {
+      const res = await fetch(SUPABASE_URL + '/functions/v1/' + PREMIUM_CHECK_FN_PATH, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + _accessToken,
+          'apikey': SUPABASE_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ feature: 'client_report_pdf' })
+      });
+      const data = await res.json().catch(() => ({}));
+      return { allowed: !!data.allowed, mode: 'server' };
+    } catch(e) {
+      return { allowed: isPremiumPlan(), mode: 'metadata-fallback', weak: true, error: e.message };
+    }
+  }
+
+  // Step 3: fallback check from user metadata (still enforce in code path).
+  return { allowed: isPremiumPlan(), mode: isOnline ? 'metadata-fallback' : 'offline-metadata', weak: true };
+}
+
+function metricDeltaLabel(first, last) {
+  if (first == null || last == null) return '—';
+  const delta = last - first;
+  if (delta === 0) return '0';
+  return (delta > 0 ? '+' : '') + delta;
+}
+
+function buildClientReportPayload(clientId) {
+  const client = appState.clients.find(c => c.id === clientId && !c.isTrashed);
+  if (!client) return null;
+  const sessions = getClientSessions(clientId).sort(compareSessionsAsc);
+  const totalSessions = sessions.length;
+  const firstDate = sessions[0]?.date || '—';
+  const lastDate = sessions[sessions.length - 1]?.date || '—';
+
+  const metricKeys = ['comfort', 'easeOfMovement', 'breathEase', 'agency'];
+  const metricSeries = {};
+  metricKeys.forEach(k => metricSeries[k] = sessions.map(s => s.metrics?.[k]).filter(v => v != null));
+  const avg = k => {
+    const arr = metricSeries[k];
+    if (!arr || arr.length === 0) return null;
+    return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+  };
+  const firstMetric = k => {
+    const s = sessions.find(x => x.metrics && x.metrics[k] != null);
+    return s?.metrics?.[k] ?? null;
+  };
+  const lastMetric = k => {
+    for (let i = sessions.length - 1; i >= 0; i--) {
+      const v = sessions[i]?.metrics?.[k];
+      if (v != null) return v;
+    }
+    return null;
+  };
+
+  const timeline = sessions.map((s, idx) => ({
+    n: idx + 1,
+    date: s.date || '—',
+    duration: s.durationMinutes || '',
+    context: s.locationContext || '',
+    tags: (s.sessionTags || []).join(', '),
+    request: s.studentRequestGoal || '',
+    hypothesis: s.functionalHypothesis || '',
+    constraints: s.keyConstraints || '',
+    strategy: s.lessonStrategy || '',
+    outcomes: s.outcomesImmediate || '',
+    followUp: s.followUpNextTime || '',
+    home: s.homeSuggestion || '',
+    homeFrequency: s.homeFrequency || '',
+    metricNotes: s.metrics?.metricNotes || '',
+    ahaMoment: s.ahaMoment || '',
+    metrics: {
+      comfort: s.metrics?.comfort,
+      easeOfMovement: s.metrics?.easeOfMovement,
+      breathEase: s.metrics?.breathEase,
+      agency: s.metrics?.agency
+    }
+  }));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    client,
+    sessions: timeline,
+    summary: {
+      totalSessions,
+      firstDate,
+      lastDate,
+      avg: {
+        comfort: avg('comfort'),
+        easeOfMovement: avg('easeOfMovement'),
+        breathEase: avg('breathEase'),
+        agency: avg('agency')
+      },
+      delta: {
+        comfort: metricDeltaLabel(firstMetric('comfort'), lastMetric('comfort')),
+        easeOfMovement: metricDeltaLabel(firstMetric('easeOfMovement'), lastMetric('easeOfMovement')),
+        breathEase: metricDeltaLabel(firstMetric('breathEase'), lastMetric('breathEase')),
+        agency: metricDeltaLabel(firstMetric('agency'), lastMetric('agency'))
+      }
+    }
+  };
+}
+
+function reportValue(value) {
+  const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
+  if (hasValue) return { text: String(value), missing: false };
+  return { text: t('reportMissingValue'), missing: true };
+}
+
+function reportField(label, value) {
+  const rv = reportValue(value);
+  return `<div class="rf"><div class="rl">${label}</div><div class="rv ${rv.missing ? 'missing' : ''}">${esc(rv.text)}</div></div>`;
+}
+
+function metricCell(label, value) {
+  const rv = reportValue(value == null ? '' : String(value));
+  return `<div class="metric"><span>${label}</span><strong class="${rv.missing ? 'missing' : ''}">${esc(rv.missing ? '—' : rv.text)}</strong></div>`;
+}
+
+function buildReportMetricsChartSvg(sessions) {
+  const usable = sessions
+    .filter(s => s.metrics && ['comfort','easeOfMovement','breathEase','agency'].some(k => s.metrics[k] != null));
+  if (usable.length < 2) return '';
+
+  const keys = [
+    { key: 'comfort', label: metricLabel('comfort'), color: '#d97706' },
+    { key: 'easeOfMovement', label: metricLabel('easeOfMovement'), color: '#2563eb' },
+    { key: 'breathEase', label: metricLabel('breathEase'), color: '#059669' },
+    { key: 'agency', label: metricLabel('agency'), color: '#9333ea' }
+  ];
+  const width = 720, height = 220, padX = 44, padY = 22;
+  const plotW = width - padX * 2, plotH = height - padY * 2;
+  const xAt = i => usable.length === 1 ? padX + plotW / 2 : padX + (plotW * i / (usable.length - 1));
+  const yAt = v => padY + plotH - (plotH * (v / 10));
+
+  const grid = Array.from({ length: 6 }, (_, i) => {
+    const val = i * 2;
+    const y = yAt(val);
+    return `<line x1="${padX}" y1="${y}" x2="${padX + plotW}" y2="${y}" stroke="#e5e7eb" stroke-width="1"></line>
+      <text x="14" y="${y + 4}" font-size="10" fill="#64748b">${val}</text>`;
+  }).join('');
+
+  const lines = keys.map(meta => {
+    const points = usable.map((s, i) => s.metrics?.[meta.key] == null ? null : `${xAt(i)},${yAt(s.metrics[meta.key])}`).filter(Boolean);
+    if (points.length < 2) return '';
+    const dots = usable.map((s, i) => s.metrics?.[meta.key] == null
+      ? ''
+      : `<circle cx="${xAt(i)}" cy="${yAt(s.metrics[meta.key])}" r="3.2" fill="${meta.color}"></circle>`
+    ).join('');
+    return `<polyline fill="none" stroke="${meta.color}" stroke-width="2.8" points="${points.join(' ')}"></polyline>${dots}`;
+  }).join('');
+
+  const xLabels = usable.map((s, i) => {
+    const show = i === 0 || i === usable.length - 1 || i === Math.floor((usable.length - 1) / 2);
+    if (!show) return '';
+    return `<text x="${xAt(i)}" y="${height - 5}" text-anchor="middle" font-size="10" fill="#64748b">${esc((s.date || '').slice(5))}</text>`;
+  }).join('');
+
+  const legend = keys.map(meta =>
+    `<span class="legend-item"><span class="legend-dot" style="background:${meta.color};"></span>${esc(meta.label)}</span>`
+  ).join('');
+
+  return `
+    <div class="chart-box">
+      <div class="chart-legend">${legend}</div>
+      <svg viewBox="0 0 ${width} ${height}" class="chart-svg">
+        ${grid}
+        <line x1="${padX}" y1="${padY}" x2="${padX}" y2="${padY + plotH}" stroke="#94a3b8" stroke-width="1.2"></line>
+        <line x1="${padX}" y1="${padY + plotH}" x2="${padX + plotW}" y2="${padY + plotH}" stroke="#94a3b8" stroke-width="1.2"></line>
+        ${lines}
+        ${xLabels}
+      </svg>
+    </div>`;
+}
+
+function buildClientReportHtml(payload) {
+  const c = payload.client;
+  const s = payload.summary;
+  const tags = (c.tags || []).length ? (c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('') : `<span class="muted missing">${esc(t('reportMissingValue'))}</span>`;
+  const sessionsHtml = payload.sessions.map(item => `
+    <section class="session">
+      <div class="session-head">
+        <h4>${currentLang === 'it' ? 'Sessione' : 'Session'} ${item.n} · ${esc(item.date)}</h4>
+        <div class="muted">${currentLang === 'it' ? 'Dettaglio sessione' : 'Session details'}</div>
+      </div>
+      <div class="metrics-row">
+        ${metricCell(currentLang === 'it' ? 'Comfort' : 'Comfort', item.metrics.comfort)}
+        ${metricCell(currentLang === 'it' ? 'Facilità mov.' : 'Ease', item.metrics.easeOfMovement)}
+        ${metricCell(currentLang === 'it' ? 'Respiro' : 'Breath', item.metrics.breathEase)}
+        ${metricCell(currentLang === 'it' ? 'Agency' : 'Agency', item.metrics.agency)}
+      </div>
+      <div class="session-grid">
+        ${reportField(currentLang === 'it' ? 'Data sessione' : 'Session date', item.date)}
+        ${reportField(currentLang === 'it' ? 'Durata (min)' : 'Duration (min)', item.duration)}
+        ${reportField(currentLang === 'it' ? 'Contesto / location' : 'Context / location', item.context)}
+        ${reportField(currentLang === 'it' ? 'Tag sessione' : 'Session tags', item.tags)}
+        ${reportField(currentLang === 'it' ? 'Richiesta / obiettivo' : 'Request / goal', item.request)}
+        ${reportField(currentLang === 'it' ? 'Ipotesi funzionale' : 'Functional hypothesis', item.hypothesis)}
+        ${reportField(currentLang === 'it' ? 'Vincoli principali' : 'Key constraints', item.constraints)}
+        ${reportField(currentLang === 'it' ? 'Strategia' : 'Lesson strategy', item.strategy)}
+        ${reportField(currentLang === 'it' ? 'Esiti principali' : 'Main outcomes', item.outcomes)}
+        ${reportField(currentLang === 'it' ? 'Follow-up / next time' : 'Follow-up / next time', item.followUp)}
+        ${reportField(currentLang === 'it' ? 'Pratica a casa' : 'Home practice', item.home)}
+        ${reportField(currentLang === 'it' ? 'Frequenza suggerita' : 'Suggested frequency', item.homeFrequency)}
+        ${reportField(currentLang === 'it' ? 'Note metriche' : 'Metric notes', item.metricNotes)}
+        ${reportField(currentLang === 'it' ? 'Aha moment' : 'Aha moment', item.ahaMoment)}
+      </div>
+    </section>
+  `).join('');
+  const chartHtml = buildReportMetricsChartSvg(payload.sessions);
+
+  return `<!doctype html>
+  <html lang="${currentLang}">
+  <head>
+    <meta charset="utf-8">
+    <title>${esc(c.name)} · ${currentLang === 'it' ? 'Report Cliente' : 'Client Report'}</title>
+    <style>
+      body{font-family:Arial,sans-serif;color:#1b2430;margin:0;padding:24px;line-height:1.42}
+      h1,h2,h3,h4{margin:0 0 8px}
+      .muted{color:#5f6b7a;font-size:12px}
+      .missing{color:#8a94a3;font-style:italic}
+      .header{border-bottom:2px solid #d7dde6;padding-bottom:14px;margin-bottom:16px}
+      .badge{display:inline-block;padding:3px 10px;border:1px solid #c3cfdd;border-radius:999px;font-size:11px;margin-left:8px}
+      .tag{display:inline-block;background:#eef3f8;border:1px solid #d4dbe5;border-radius:999px;padding:3px 8px;margin:0 6px 6px 0;font-size:11px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .card{border:1px solid #d7dde6;border-radius:10px;padding:12px;margin:10px 0;background:#fff}
+      .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+      .metric{border:1px solid #d7dde6;border-radius:8px;padding:8px;font-size:12px;display:flex;justify-content:space-between}
+      .metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+      .session{border:1px solid #d7dde6;border-radius:10px;padding:12px;margin:12px 0;break-inside:avoid;background:#fff}
+      .session-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+      .session-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-end;margin-bottom:8px}
+      .rf{margin-top:8px}
+      .rl{font-size:11px;color:#5f6b7a;text-transform:uppercase;letter-spacing:.05em}
+      .rv{font-size:13px;white-space:pre-wrap}
+      .chart-box{border:1px solid #d7dde6;border-radius:10px;padding:10px;background:#fff}
+      .chart-svg{width:100%;height:auto;min-width:620px}
+      .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin:2px 0 8px 0}
+      .legend-item{font-size:11px;color:#334155;display:inline-flex;align-items:center;gap:5px}
+      .legend-dot{width:9px;height:9px;border-radius:999px;display:inline-block}
+      .footer{margin-top:16px;font-size:11px;color:#5f6b7a}
+      @media print{
+        body{padding:11mm;background:#fff}
+        .session{page-break-inside:avoid}
+        .card{page-break-inside:avoid}
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>${currentLang === 'it' ? 'Report Cliente' : 'Client Report'} · ${esc(c.name)}</h1>
+      <div class="muted">${t('reportGeneratedOn')} ${new Date(payload.generatedAt).toLocaleString()} <span class="badge">${x('pdfPremiumBadge')}</span></div>
+      <div style="margin-top:8px;"><strong>${t('reportStatusLabel')}:</strong> ${esc(getStatusLabel(c.status || 'active'))}</div>
+      <div style="margin-top:8px;"><strong>Tag:</strong> ${tags}</div>
+    </div>
+
+    <section class="card">
+      <h3>${t('reportSectionOverview')}</h3>
+      ${reportField(currentLang === 'it' ? 'Quadro iniziale / baseline' : 'Baseline snapshot', c.baselineSnapshot || '')}
+      ${reportField(currentLang === 'it' ? 'Note generali rilevanti' : 'Relevant general notes', c.generalNotes || '')}
+    </section>
+
+    <section class="card">
+      <h3>${t('reportSectionTrend')}</h3>
+      <div class="grid">
+        <div><strong>${t('reportTotalSessionsLabel')}:</strong> ${s.totalSessions}</div>
+        <div><strong>${t('reportPeriodLabel')}:</strong> ${esc(s.firstDate)} → ${esc(s.lastDate)}</div>
+      </div>
+      <div class="kpi" style="margin-top:10px;">
+        ${metricCell(currentLang === 'it' ? 'Comfort medio / Δ' : 'Comfort avg / Δ', `${s.avg.comfort ?? '—'} / ${s.delta.comfort}`)}
+        ${metricCell(currentLang === 'it' ? 'Facilità media / Δ' : 'Ease avg / Δ', `${s.avg.easeOfMovement ?? '—'} / ${s.delta.easeOfMovement}`)}
+        ${metricCell(currentLang === 'it' ? 'Respiro medio / Δ' : 'Breath avg / Δ', `${s.avg.breathEase ?? '—'} / ${s.delta.breathEase}`)}
+        ${metricCell(currentLang === 'it' ? 'Agency media / Δ' : 'Agency avg / Δ', `${s.avg.agency ?? '—'} / ${s.delta.agency}`)}
+      </div>
+    </section>
+
+    ${chartHtml ? `<section class="card"><h3>${t('reportSectionChart')}</h3>${chartHtml}</section>` : ''}
+
+    <section>
+      <h3>${t('reportSectionSessions')}</h3>
+      ${sessionsHtml || `<div class="card muted">${t('reportNoData')}</div>`}
+    </section>
+
+    <div class="footer">FI Logbook · ${currentLang === 'it' ? 'Uso professionale riservato' : 'Confidential professional use'}</div>
+  </body>
+  </html>`;
+}
+
+async function exportClientReportPDF(clientId = currentClientId) {
+  if (!clientId) { showToast(t('reportNeedsClient'), 'error'); return; }
+  const entitlement = await verifyPremiumEntitlementForPdf();
+  if (!entitlement.allowed) {
+    showToast(t('reportPremiumOnly'), 'error', 4200);
+    showToast(t('reportPremiumCta'), 'info', 6200);
+    return;
+  }
+  if (entitlement.mode === 'metadata-fallback') showToast(t('reportEntitlementWeak'), 'info', 4200);
+  if (entitlement.mode === 'offline-metadata') showToast(t('reportEntitlementOffline'), 'info', 4200);
+
+  const payload = buildClientReportPayload(clientId);
+  if (!payload || (!payload.client.baselineSnapshot && !payload.client.generalNotes && payload.sessions.length === 0)) {
+    showToast(t('reportNoData'), 'error');
+    return;
+  }
+
+  const reportHtml = buildClientReportHtml(payload);
+  const win = window.open('', '_blank', 'width=1100,height=860');
+  if (!win) {
+    showToast('Popup blocked. Please allow popups for PDF export.', 'error');
+    return;
+  }
+  win.document.open();
+  win.document.write(reportHtml);
+  win.document.close();
+  setTimeout(() => win.print(), 220);
+  showToast(t('reportPdfReady'), 'success');
+  showToast(t('reportOpenPrintDialog'), 'info', 4500);
 }
 
 // ════════════════════════════════════════════════════════
