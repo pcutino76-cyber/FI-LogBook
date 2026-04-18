@@ -4536,6 +4536,8 @@ function buildClientReportPayload(clientId) {
     strategy: s.lessonStrategy || '',
     outcomes: s.outcomesImmediate || '',
     followUp: s.followUpNextTime || '',
+    ahaMoment: s.ahaMoment || '',
+    consentObtained: s.consentObtained || '',
     home: s.homeSuggestion || '',
     homeFrequency: s.homeFrequency || '',
     metricNotes: s.metrics?.metricNotes || '',
@@ -4577,7 +4579,8 @@ function reportField(label, value) {
 }
 
 function metricCell(label, value) {
-  return `<div class="metric"><span>${label}</span><strong>${value == null ? '—' : value}</strong></div>`;
+  const hasValue = value != null && String(value).trim() !== '';
+  return `<div class="metric"><span>${label}</span><strong class="${hasValue ? '' : 'is-empty'}">${hasValue ? esc(String(value)) : esc(t('reportEmptyPlaceholder'))}</strong></div>`;
 }
 
 function buildReportMetricChartHtml(sessions) {
@@ -4652,7 +4655,7 @@ function buildReportMetricChartHtml(sessions) {
 function buildClientReportHtml(payload) {
   const c = payload.client;
   const s = payload.summary;
-  const tags = (c.tags || []).length ? (c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('') : `<span class="muted">—</span>`;
+  const tags = (c.tags || []).length ? (c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('') : `<span class="rv is-empty">${esc(t('reportEmptyPlaceholder'))}</span>`;
   const metricChartHtml = buildReportMetricChartHtml(payload.sessions);
   const sessionsHtml = payload.sessions.map(item => `
     <section class="session">
@@ -4673,6 +4676,8 @@ function buildClientReportHtml(payload) {
       ${reportField(currentLang === 'it' ? 'Strategia' : 'Lesson strategy', item.strategy)}
       ${reportField(currentLang === 'it' ? 'Esiti principali' : 'Main outcomes', item.outcomes)}
       ${reportField(currentLang === 'it' ? 'Follow-up / next time' : 'Follow-up / next time', item.followUp)}
+      ${reportField(currentLang === 'it' ? 'Momento Aha' : 'Aha moment', item.ahaMoment)}
+      ${reportField(currentLang === 'it' ? 'Consenso verbale ottenuto' : 'Verbal consent obtained', item.consentObtained)}
       ${reportField(currentLang === 'it' ? 'Pratica a casa' : 'Home practice', item.home)}
       ${reportField(currentLang === 'it' ? 'Frequenza suggerita' : 'Suggested frequency', item.homeFrequency)}
       ${reportField(currentLang === 'it' ? 'Note metriche' : 'Metric notes', item.metricNotes)}
@@ -4695,6 +4700,7 @@ function buildClientReportHtml(payload) {
       .card{border:1px solid #d7dde6;border-radius:10px;padding:12px;margin:10px 0}
       .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
       .metric{border:1px solid #d7dde6;border-radius:8px;padding:8px;font-size:12px;display:flex;justify-content:space-between}
+      .metric strong.is-empty{color:#8ea0b4;font-style:italic;font-weight:600}
       .session{border:1px solid #d7dde6;border-radius:10px;padding:12px;margin:12px 0;break-inside:avoid}
       .session-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-end;margin-bottom:8px}
       .rf{margin-top:8px}
