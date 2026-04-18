@@ -692,7 +692,7 @@ input[type=range]::-webkit-slider-thumb {
 .status-completed { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
 .status-archived { background: var(--bg3); color: var(--text2); border-color: var(--border2); }
 .chart-card { width:100%; }
-.chart-wrap { overflow-x:auto; }
+.chart-wrap { position: relative; overflow-x:auto; }
 .chart-legend { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
 .chart-legend-item { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); }
 .chart-swatch { width:10px; height:10px; border-radius:50%; }
@@ -702,6 +702,42 @@ input[type=range]::-webkit-slider-thumb {
 @media(max-width:600px) {
   .plan-row { align-items:flex-start; }
   .library-row { flex-direction:column; align-items:stretch; }
+  .session-card-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+    width: 100%;
+  }
+  .session-card-actions .btn {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+  .session-card-actions .btn[data-act="del"] {
+    grid-column: 1 / -1;
+  }
+  .chart-wrap.chart-mobile-overflow::after,
+  .chart-wrap.chart-mobile-overflow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 18px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    z-index: 1;
+  }
+  .chart-wrap.chart-mobile-overflow::after {
+    right: 0;
+    background: linear-gradient(to left, var(--surface), rgba(0, 0, 0, 0));
+  }
+  .chart-wrap.chart-mobile-overflow::before {
+    left: 0;
+    background: linear-gradient(to right, var(--surface), rgba(0, 0, 0, 0));
+  }
+  .chart-wrap.chart-mobile-overflow.can-scroll-right::after { opacity: 1; }
+  .chart-wrap.chart-mobile-overflow.can-scroll-left::before { opacity: 1; }
 }
 
 
@@ -2522,6 +2558,7 @@ let currentClientId = null;
 let currentSessionId = null;
 let editingClientId = null;
 let deleteForeverTargetId = null;
+let chartOverflowCleanup = null;
 let connectModeView = null; // 'front' | 'back'
 let connectFirstMarkerId = null;
 let themeMode = 'auto';
@@ -2911,6 +2948,7 @@ function renderPlanSummary() {
     `<div class="connect-mode-bar" style="margin-top:12px;border-color:var(--red);background:var(--red-light);color:var(--red);">⚠️ ${msg}</div>`
   ).join('');
   const upgrade = tier === 'premium' ? '' : `<div class="chart-note">${x('upgradeNote')} ${x('archiveHint')} ${quotaMsg}</div>`;
+  const statusBadge = tier === 'premium' ? '' : `<div>${statusBadgeHtml('active')}</div>`;
   el.style.display = '';
   el.innerHTML = `
     <div class="plan-row">
@@ -2918,7 +2956,7 @@ function renderPlanSummary() {
         <div class="section-title" style="margin-bottom:6px;">${planName}</div>
         <div style="font-size:13px;color:var(--text2);">${x('profileUsage')}</div>
       </div>
-      <div>${statusBadgeHtml(tier === 'premium' ? 'completed' : 'active')}</div>
+      ${statusBadge}
     </div>
     <div class="plan-stats">
       <span class="plan-pill">👥 ${x('activeClientsLabel')}: <strong>${activeCount}/${clientCap}</strong></span>
@@ -3192,6 +3230,33 @@ function buildMetricsChart(clientId) {
   </div>`;
 }
 
+function bindChartOverflowAffordance() {
+  if (typeof chartOverflowCleanup === 'function') {
+    chartOverflowCleanup();
+    chartOverflowCleanup = null;
+  }
+  const wrap = document.querySelector('#profile-content .chart-wrap');
+  if (!wrap) return;
+  const isMobile = () => window.matchMedia('(max-width: 600px)').matches;
+  const update = () => {
+    const mobile = isMobile();
+    const overflow = wrap.scrollWidth - wrap.clientWidth > 1;
+    const atStart = wrap.scrollLeft <= 1;
+    const atEnd = (wrap.scrollLeft + wrap.clientWidth) >= (wrap.scrollWidth - 1);
+    wrap.classList.toggle('chart-mobile-overflow', mobile && overflow);
+    wrap.classList.toggle('can-scroll-right', mobile && overflow && !atEnd);
+    wrap.classList.toggle('can-scroll-left', mobile && overflow && !atStart);
+  };
+  wrap.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  requestAnimationFrame(update);
+  setTimeout(update, 60);
+  chartOverflowCleanup = () => {
+    wrap.removeEventListener('scroll', update);
+    window.removeEventListener('resize', update);
+  };
+}
+
 function renderProfile() {
   try {
     const c = appState.clients.find(x => x.id === currentClientId);
@@ -3219,7 +3284,7 @@ function renderProfile() {
                 <div class="session-preview">${esc((s.studentRequestGoal || '').substring(0, 80))}${(s.studentRequestGoal || '').length > 80 ? '…' : ''}</div>
                 <div class="session-metrics" style="margin-top:6px;">${metricsHtml}${skelSummary}</div>
               </div>
-              <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+              <div class="session-card-actions" style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-sm" data-sid="${s.id}" data-act="edit">${t('editSession')}</button>
                 <button class="btn btn-secondary btn-sm" data-sid="${s.id}" data-act="dup">${x('duplicateSession')}</button>
                 <button class="btn btn-danger btn-sm" data-sid="${s.id}" data-act="del">${t('deleteSession')}</button>
@@ -3268,6 +3333,7 @@ function renderProfile() {
       <div class="section-title">${t('sessionsTimeline')}</div>
       ${sessionsHtml}
     `;
+    bindChartOverflowAffordance();
 
   } catch(e) {
     showToast('Error loading profile: ' + e.message, 'error');
@@ -4632,8 +4698,8 @@ const REPORT_PDF_STRINGS = {
     generatedOn: 'Generato il',
     status: 'Stato',
     tag: 'Tag',
-    clientOverview: 'Overview cliente',
-    baselineSnapshot: 'Quadro iniziale / baseline',
+    clientOverview: 'Panoramica cliente',
+    baselineSnapshot: 'Quadro iniziale',
     relevantGeneralNotes: 'Note generali rilevanti',
     trendSummary: 'Sintesi andamento nel tempo',
     totalSessions: 'Sessioni totali',
@@ -4641,7 +4707,7 @@ const REPORT_PDF_STRINGS = {
     comfortAvgDelta: 'Comfort medio / Δ',
     easeAvgDelta: 'Facilità media / Δ',
     breathAvgDelta: 'Respiro medio / Δ',
-    agencyAvgDelta: 'Agency media / Δ',
+    agencyAvgDelta: 'Autonomia media / Δ',
     printableMetricsChart: 'Grafico metriche stampabile',
     scoredSessions: 'Sessioni con metriche:',
     clientMetricsTrendAria: 'Andamento metriche cliente',
@@ -4654,7 +4720,7 @@ const REPORT_PDF_STRINGS = {
     metricAgency: 'Agency',
     metricEaseLegend: 'Facilità movimento',
     metricBreathLegend: 'Respiro',
-    metricAgencyLegend: 'Agency / autonomia',
+    metricAgencyLegend: 'Autonomia',
     sessionTags: 'Tag sessione',
     requestGoal: 'Richiesta / obiettivo',
     functionalHypothesis: 'Ipotesi funzionale',
