@@ -4583,7 +4583,106 @@ function metricCell(label, value) {
   return `<div class="metric"><span>${label}</span><strong class="${hasValue ? '' : 'is-empty'}">${hasValue ? esc(String(value)) : esc(t('reportEmptyPlaceholder'))}</strong></div>`;
 }
 
+const REPORT_PDF_STRINGS = {
+  en: {
+    reportTitle: 'Client Report',
+    generatedOn: 'Generated on',
+    status: 'Status',
+    tag: 'Tag',
+    clientOverview: 'Client overview',
+    baselineSnapshot: 'Baseline snapshot',
+    relevantGeneralNotes: 'Relevant general notes',
+    trendSummary: 'Trend summary over time',
+    totalSessions: 'Total sessions',
+    period: 'Period',
+    comfortAvgDelta: 'Comfort avg / Δ',
+    easeAvgDelta: 'Ease avg / Δ',
+    breathAvgDelta: 'Breath avg / Δ',
+    agencyAvgDelta: 'Agency avg / Δ',
+    printableMetricsChart: 'Printable metrics chart',
+    scoredSessions: 'Scored sessions:',
+    clientMetricsTrendAria: 'Client metrics trend',
+    sessionsChronology: 'Sessions chronology',
+    session: 'Session',
+    durationMin: 'min',
+    metricComfort: 'Comfort',
+    metricEaseShort: 'Ease',
+    metricBreath: 'Breath',
+    metricAgency: 'Agency',
+    metricEaseLegend: 'Ease of movement',
+    metricBreathLegend: 'Breath',
+    metricAgencyLegend: 'Agency / autonomy',
+    sessionTags: 'Session tags',
+    requestGoal: 'Request / goal',
+    functionalHypothesis: 'Functional hypothesis',
+    keyConstraints: 'Key constraints',
+    lessonStrategy: 'Lesson strategy',
+    mainOutcomes: 'Main outcomes',
+    followUpNextTime: 'Follow-up / next time',
+    ahaMoment: 'AHA moment',
+    verbalConsent: 'Verbal consent obtained',
+    homePractice: 'Home practice',
+    suggestedFrequency: 'Suggested frequency',
+    metricNotes: 'Metric notes',
+    footer: 'Confidential professional use',
+    partialMetricsNote: 'Averages and changes are calculated using the values actually provided for each metric.'
+  },
+  it: {
+    reportTitle: 'Report Cliente',
+    generatedOn: 'Generato il',
+    status: 'Stato',
+    tag: 'Tag',
+    clientOverview: 'Overview cliente',
+    baselineSnapshot: 'Quadro iniziale / baseline',
+    relevantGeneralNotes: 'Note generali rilevanti',
+    trendSummary: 'Sintesi andamento nel tempo',
+    totalSessions: 'Sessioni totali',
+    period: 'Periodo',
+    comfortAvgDelta: 'Comfort medio / Δ',
+    easeAvgDelta: 'Facilità media / Δ',
+    breathAvgDelta: 'Respiro medio / Δ',
+    agencyAvgDelta: 'Agency media / Δ',
+    printableMetricsChart: 'Grafico metriche stampabile',
+    scoredSessions: 'Sessioni con metriche:',
+    clientMetricsTrendAria: 'Andamento metriche cliente',
+    sessionsChronology: 'Cronologia sessioni',
+    session: 'Sessione',
+    durationMin: 'min',
+    metricComfort: 'Comfort',
+    metricEaseShort: 'Facilità mov.',
+    metricBreath: 'Respiro',
+    metricAgency: 'Agency',
+    metricEaseLegend: 'Facilità movimento',
+    metricBreathLegend: 'Respiro',
+    metricAgencyLegend: 'Agency / autonomia',
+    sessionTags: 'Tag sessione',
+    requestGoal: 'Richiesta / obiettivo',
+    functionalHypothesis: 'Ipotesi funzionale',
+    keyConstraints: 'Vincoli principali',
+    lessonStrategy: 'Strategia',
+    mainOutcomes: 'Esiti principali',
+    followUpNextTime: 'Follow-up / prossima volta',
+    ahaMoment: 'Momento AHA',
+    verbalConsent: 'Consenso verbale ottenuto',
+    homePractice: 'Pratica a casa',
+    suggestedFrequency: 'Frequenza suggerita',
+    metricNotes: 'Note metriche',
+    footer: 'Uso professionale riservato',
+    partialMetricsNote: 'Le medie e le variazioni sono calcolate sui valori effettivamente compilati per ciascuna metrica.'
+  }
+};
+function getReportPdfStrings() {
+  return REPORT_PDF_STRINGS[currentLang] || REPORT_PDF_STRINGS.en;
+}
+function shouldShowPartialMetricsNote(summaryData) {
+  const sessions = summaryData?.sessions || [];
+  if (!sessions.length) return false;
+  const metricKeys = ['comfort', 'easeOfMovement', 'breathEase', 'agency'];
+  return metricKeys.some(key => sessions.filter(s => s.metrics?.[key] != null).length < sessions.length);
+}
+
 function buildReportMetricChartHtml(sessions) {
+  const rs = getReportPdfStrings();
   const metricKeys = ['comfort', 'easeOfMovement', 'breathEase', 'agency'];
   const metricColors = {
     comfort: '#1e3d5c',
@@ -4592,10 +4691,10 @@ function buildReportMetricChartHtml(sessions) {
     agency: '#6f4ea1'
   };
   const metricLabels = {
-    comfort: currentLang === 'it' ? 'Comfort' : 'Comfort',
-    easeOfMovement: currentLang === 'it' ? 'Facilità movimento' : 'Ease of movement',
-    breathEase: currentLang === 'it' ? 'Respiro' : 'Breath',
-    agency: currentLang === 'it' ? 'Agency / autonomia' : 'Agency / autonomy'
+    comfort: rs.metricComfort,
+    easeOfMovement: rs.metricEaseLegend,
+    breathEase: rs.metricBreathLegend,
+    agency: rs.metricAgencyLegend
   };
 
   const scoredSessions = sessions.filter(s => metricKeys.some(k => s.metrics?.[k] != null));
@@ -4637,10 +4736,10 @@ function buildReportMetricChartHtml(sessions) {
 
   return `
     <section class="card">
-      <h3>${currentLang === 'it' ? 'Grafico metriche stampabile' : 'Printable metrics chart'}</h3>
-      <div class="muted">${currentLang === 'it' ? 'Sessioni con metriche:' : 'Scored sessions:'} ${scoredSessions.length}</div>
+      <h3>${rs.printableMetricsChart}</h3>
+      <div class="muted">${rs.scoredSessions} ${scoredSessions.length}</div>
       <div class="chart-wrap">
-        <svg viewBox="0 0 ${w} ${h}" width="100%" height="auto" role="img" aria-label="${currentLang === 'it' ? 'Andamento metriche cliente' : 'Client metrics trend'}">
+        <svg viewBox="0 0 ${w} ${h}" width="100%" height="auto" role="img" aria-label="${rs.clientMetricsTrendAria}">
           <rect x="${pl}" y="${pt}" width="${w - pl - pr}" height="${h - pt - pb}" fill="#fbfcfe" stroke="#d9e0ea"/>
           ${yTicks}
           ${xTicks}
@@ -4653,34 +4752,36 @@ function buildReportMetricChartHtml(sessions) {
 }
 
 function buildClientReportHtml(payload) {
+  const rs = getReportPdfStrings();
   const c = payload.client;
   const s = payload.summary;
   const tags = (c.tags || []).length ? (c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('') : `<span class="rv is-empty">${esc(t('reportEmptyPlaceholder'))}</span>`;
   const metricChartHtml = buildReportMetricChartHtml(payload.sessions);
+  const showPartialMetricsNote = shouldShowPartialMetricsNote({ sessions: payload.sessions });
   const sessionsHtml = payload.sessions.map(item => `
     <section class="session">
       <div class="session-head">
-        <h4>${currentLang === 'it' ? 'Sessione' : 'Session'} ${item.n} · ${esc(item.date)}</h4>
-        <div class="muted">${item.duration ? esc(String(item.duration) + ' min') : esc(t('reportEmptyPlaceholder'))}${item.context ? ' · ' + esc(item.context) : ''}</div>
+        <h4>${rs.session} ${item.n} · ${esc(item.date)}</h4>
+        <div class="muted">${item.duration ? esc(String(item.duration) + ' ' + rs.durationMin) : esc(t('reportEmptyPlaceholder'))}${item.context ? ' · ' + esc(item.context) : ''}</div>
       </div>
       <div class="metrics-row">
-        ${metricCell(currentLang === 'it' ? 'Comfort' : 'Comfort', item.metrics.comfort)}
-        ${metricCell(currentLang === 'it' ? 'Facilità mov.' : 'Ease', item.metrics.easeOfMovement)}
-        ${metricCell(currentLang === 'it' ? 'Respiro' : 'Breath', item.metrics.breathEase)}
-        ${metricCell(currentLang === 'it' ? 'Agency' : 'Agency', item.metrics.agency)}
+        ${metricCell(rs.metricComfort, item.metrics.comfort)}
+        ${metricCell(rs.metricEaseShort, item.metrics.easeOfMovement)}
+        ${metricCell(rs.metricBreath, item.metrics.breathEase)}
+        ${metricCell(rs.metricAgency, item.metrics.agency)}
       </div>
-      ${reportField(currentLang === 'it' ? 'Tag sessione' : 'Session tags', item.tags)}
-      ${reportField(currentLang === 'it' ? 'Richiesta / obiettivo' : 'Request / goal', item.request)}
-      ${reportField(currentLang === 'it' ? 'Ipotesi funzionale' : 'Functional hypothesis', item.hypothesis)}
-      ${reportField(currentLang === 'it' ? 'Vincoli principali' : 'Key constraints', item.constraints)}
-      ${reportField(currentLang === 'it' ? 'Strategia' : 'Lesson strategy', item.strategy)}
-      ${reportField(currentLang === 'it' ? 'Esiti principali' : 'Main outcomes', item.outcomes)}
-      ${reportField(currentLang === 'it' ? 'Follow-up / next time' : 'Follow-up / next time', item.followUp)}
-      ${reportField(currentLang === 'it' ? 'Momento Aha' : 'Aha moment', item.ahaMoment)}
-      ${reportField(currentLang === 'it' ? 'Consenso verbale ottenuto' : 'Verbal consent obtained', item.consentObtained)}
-      ${reportField(currentLang === 'it' ? 'Pratica a casa' : 'Home practice', item.home)}
-      ${reportField(currentLang === 'it' ? 'Frequenza suggerita' : 'Suggested frequency', item.homeFrequency)}
-      ${reportField(currentLang === 'it' ? 'Note metriche' : 'Metric notes', item.metricNotes)}
+      ${reportField(rs.sessionTags, item.tags)}
+      ${reportField(rs.requestGoal, item.request)}
+      ${reportField(rs.functionalHypothesis, item.hypothesis)}
+      ${reportField(rs.keyConstraints, item.constraints)}
+      ${reportField(rs.lessonStrategy, item.strategy)}
+      ${reportField(rs.mainOutcomes, item.outcomes)}
+      ${reportField(rs.followUpNextTime, item.followUp)}
+      ${reportField(rs.ahaMoment, item.ahaMoment)}
+      ${reportField(rs.verbalConsent, item.consentObtained)}
+      ${reportField(rs.homePractice, item.home)}
+      ${reportField(rs.suggestedFrequency, item.homeFrequency)}
+      ${reportField(rs.metricNotes, item.metricNotes)}
     </section>
   `).join('');
 
@@ -4688,7 +4789,7 @@ function buildClientReportHtml(payload) {
   <html lang="${currentLang}">
   <head>
     <meta charset="utf-8">
-    <title>${esc(c.name)} · ${currentLang === 'it' ? 'Report Cliente' : 'Client Report'}</title>
+    <title>${esc(c.name)} · ${rs.reportTitle}</title>
     <style>
       body{font-family:Arial,sans-serif;color:#1b2430;margin:0;padding:28px;line-height:1.4}
       h1,h2,h3,h4{margin:0 0 8px}
@@ -4717,40 +4818,41 @@ function buildClientReportHtml(payload) {
   </head>
   <body>
     <div class="header">
-      <h1>${currentLang === 'it' ? 'Report Cliente' : 'Client Report'} · ${esc(c.name)}</h1>
-      <div class="muted">${currentLang === 'it' ? 'Generato il' : 'Generated on'} ${new Date(payload.generatedAt).toLocaleString()} <span class="badge">${x('pdfPremiumBadge')}</span></div>
-      <div style="margin-top:8px;"><strong>${currentLang === 'it' ? 'Stato' : 'Status'}:</strong> ${esc(getStatusLabel(c.status || 'active'))}</div>
-      <div style="margin-top:8px;"><strong>Tag:</strong> ${tags}</div>
+      <h1>${rs.reportTitle} · ${esc(c.name)}</h1>
+      <div class="muted">${rs.generatedOn} ${new Date(payload.generatedAt).toLocaleString()} <span class="badge">${x('pdfPremiumBadge')}</span></div>
+      <div style="margin-top:8px;"><strong>${rs.status}:</strong> ${esc(getStatusLabel(c.status || 'active'))}</div>
+      <div style="margin-top:8px;"><strong>${rs.tag}:</strong> ${tags}</div>
     </div>
 
     <section class="card">
-      <h3>${currentLang === 'it' ? 'Overview cliente' : 'Client overview'}</h3>
-      ${reportField(currentLang === 'it' ? 'Quadro iniziale / baseline' : 'Baseline snapshot', c.baselineSnapshot)}
-      ${reportField(currentLang === 'it' ? 'Note generali rilevanti' : 'Relevant general notes', c.generalNotes)}
+      <h3>${rs.clientOverview}</h3>
+      ${reportField(rs.baselineSnapshot, c.baselineSnapshot)}
+      ${reportField(rs.relevantGeneralNotes, c.generalNotes)}
     </section>
 
     <section class="card">
-      <h3>${currentLang === 'it' ? 'Sintesi andamento nel tempo' : 'Trend summary over time'}</h3>
+      <h3>${rs.trendSummary}</h3>
       <div class="grid">
-        <div><strong>${currentLang === 'it' ? 'Sessioni totali' : 'Total sessions'}:</strong> ${s.totalSessions}</div>
-        <div><strong>${currentLang === 'it' ? 'Periodo' : 'Period'}:</strong> ${esc(s.firstDate)} → ${esc(s.lastDate)}</div>
+        <div><strong>${rs.totalSessions}:</strong> ${s.totalSessions}</div>
+        <div><strong>${rs.period}:</strong> ${esc(s.firstDate)} → ${esc(s.lastDate)}</div>
       </div>
       <div class="kpi" style="margin-top:10px;">
-        ${metricCell(currentLang === 'it' ? 'Comfort medio / Δ' : 'Comfort avg / Δ', `${s.avg.comfort ?? '—'} / ${s.delta.comfort}`)}
-        ${metricCell(currentLang === 'it' ? 'Facilità media / Δ' : 'Ease avg / Δ', `${s.avg.easeOfMovement ?? '—'} / ${s.delta.easeOfMovement}`)}
-        ${metricCell(currentLang === 'it' ? 'Respiro medio / Δ' : 'Breath avg / Δ', `${s.avg.breathEase ?? '—'} / ${s.delta.breathEase}`)}
-        ${metricCell(currentLang === 'it' ? 'Agency media / Δ' : 'Agency avg / Δ', `${s.avg.agency ?? '—'} / ${s.delta.agency}`)}
+        ${metricCell(rs.comfortAvgDelta, `${s.avg.comfort ?? '—'} / ${s.delta.comfort}`)}
+        ${metricCell(rs.easeAvgDelta, `${s.avg.easeOfMovement ?? '—'} / ${s.delta.easeOfMovement}`)}
+        ${metricCell(rs.breathAvgDelta, `${s.avg.breathEase ?? '—'} / ${s.delta.breathEase}`)}
+        ${metricCell(rs.agencyAvgDelta, `${s.avg.agency ?? '—'} / ${s.delta.agency}`)}
       </div>
+      ${showPartialMetricsNote ? `<div class="muted" style="margin-top:8px;">${rs.partialMetricsNote}</div>` : ''}
     </section>
 
     ${metricChartHtml}
 
     <section>
-      <h3>${currentLang === 'it' ? 'Cronologia sessioni' : 'Sessions chronology'}</h3>
+      <h3>${rs.sessionsChronology}</h3>
       ${sessionsHtml || `<div class="card muted">${t('reportNoData')}</div>`}
     </section>
 
-    <div class="footer">FI Logbook · ${currentLang === 'it' ? 'Uso professionale riservato' : 'Confidential professional use'}</div>
+    <div class="footer">FI Logbook · ${rs.footer}</div>
   </body>
   </html>`;
 }
