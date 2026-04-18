@@ -716,28 +716,6 @@ input[type=range]::-webkit-slider-thumb {
   .session-card-actions .btn[data-act="del"] {
     grid-column: 1 / -1;
   }
-  .chart-wrap.chart-mobile-overflow::after,
-  .chart-wrap.chart-mobile-overflow::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 18px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.18s ease;
-    z-index: 1;
-  }
-  .chart-wrap.chart-mobile-overflow::after {
-    right: 0;
-    background: linear-gradient(to left, var(--surface), rgba(0, 0, 0, 0));
-  }
-  .chart-wrap.chart-mobile-overflow::before {
-    left: 0;
-    background: linear-gradient(to right, var(--surface), rgba(0, 0, 0, 0));
-  }
-  .chart-wrap.chart-mobile-overflow.can-scroll-right::after { opacity: 1; }
-  .chart-wrap.chart-mobile-overflow.can-scroll-left::before { opacity: 1; }
 }
 
 
@@ -773,6 +751,7 @@ input[type=range]::-webkit-slider-thumb {
 }
 .struct-scroll-hint { margin: 4px auto 4px; }
 .skeletal-scroll-hint { margin: 10px auto 2px; }
+.chart-scroll-hint { margin: 2px auto 8px; }
 .skeletal-panel-controls {
   margin-top: 10px;
   display: flex;
@@ -961,7 +940,8 @@ input[type=range]::-webkit-slider-thumb {
     overflow-x: hidden;
   }
   .struct-scroll-hint,
-  .skeletal-scroll-hint {
+  .skeletal-scroll-hint,
+  .chart-scroll-hint {
     display: block;
   }
   .struct-table {
@@ -3218,6 +3198,7 @@ function buildMetricsChart(clientId) {
   return `<div class="card chart-card">
     <div class="section-title">${x('chartTitle')}</div>
     <div class="chart-legend">${legend}</div>
+    <div class="struct-scroll-hint chart-scroll-hint">${currentLang === 'it' ? '↔ SCORRI ORIZZONTALMENTE' : '↔ SWIPE HORIZONTALLY'}</div>
     <div class="chart-wrap">
       <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;min-width:560px;">
         ${grid}
@@ -3236,16 +3217,13 @@ function bindChartOverflowAffordance() {
     chartOverflowCleanup = null;
   }
   const wrap = document.querySelector('#profile-content .chart-wrap');
-  if (!wrap) return;
+  const hint = document.querySelector('#profile-content .chart-scroll-hint');
+  if (!wrap || !hint) return;
   const isMobile = () => window.matchMedia('(max-width: 600px)').matches;
   const update = () => {
     const mobile = isMobile();
     const overflow = wrap.scrollWidth - wrap.clientWidth > 1;
-    const atStart = wrap.scrollLeft <= 1;
-    const atEnd = (wrap.scrollLeft + wrap.clientWidth) >= (wrap.scrollWidth - 1);
-    wrap.classList.toggle('chart-mobile-overflow', mobile && overflow);
-    wrap.classList.toggle('can-scroll-right', mobile && overflow && !atEnd);
-    wrap.classList.toggle('can-scroll-left', mobile && overflow && !atStart);
+    hint.style.display = mobile && overflow ? 'block' : 'none';
   };
   wrap.addEventListener('scroll', update, { passive: true });
   window.addEventListener('resize', update);
@@ -4717,7 +4695,7 @@ const REPORT_PDF_STRINGS = {
     metricComfort: 'Comfort',
     metricEaseShort: 'Facilità mov.',
     metricBreath: 'Respiro',
-    metricAgency: 'Agency',
+    metricAgency: 'Autonomia',
     metricEaseLegend: 'Facilità movimento',
     metricBreathLegend: 'Respiro',
     metricAgencyLegend: 'Autonomia',
