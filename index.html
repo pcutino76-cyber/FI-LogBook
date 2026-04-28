@@ -343,6 +343,15 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   display: flex; align-items: center; gap: 16px;
 }
 .client-card:hover { box-shadow: var(--shadow); border-color: var(--accent2); transform: translateY(-1px); }
+.client-card.new-client-highlight {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent2) 22%, transparent), var(--shadow);
+  animation: newClientGlow 1.4s ease-in-out 2;
+}
+@keyframes newClientGlow {
+  0%, 100% { background: var(--surface); }
+  50% { background: color-mix(in srgb, var(--accent-light) 42%, var(--surface)); }
+}
 .client-avatar {
   width: 42px; height: 42px; border-radius: 50%;
   background: var(--accent-light);
@@ -1184,6 +1193,11 @@ input[type=range]::-webkit-slider-thumb {
       <span class="search-icon">⌕</span>
       <input type="text" id="client-search" placeholder="—" oninput="renderClients()">
     </div>
+    <select id="client-sort" onchange="setClientSort(this.value)" style="width:auto;min-width:140px;">
+      <option value="recent" id="client-sort-recent">—</option>
+      <option value="az" id="client-sort-az">—</option>
+      <option value="za" id="client-sort-za">—</option>
+    </select>
     <select id="tag-filter" onchange="renderClients()" style="width:auto;min-width:140px;">
       <option value="" id="tag-filter-all">—</option>
     </select>
@@ -1559,6 +1573,9 @@ const STRINGS = {
     clientsTitle: 'Clients', clientsSubtitle: 'Clients in active workspace',
     btnAddClient: '＋ Add Client',
     clientSearchPlaceholder: 'Search by name or tag…',
+    sortRecent: 'Most recent',
+    sortAZ: 'A-Z',
+    sortZA: 'Z-A',
     allTagsOption: 'All tags',
     // Profile
     backToClients: '← Clients', editProfile: 'Edit Profile', moveClientToTrash: 'Move to Trash', deleteClientShort: 'Delete Client', newSession: '＋ New Session',
@@ -1744,6 +1761,9 @@ const STRINGS = {
     clientsTitle: 'Allievi', clientsSubtitle: 'Clienti nello spazio attivo',
     btnAddClient: '＋ Aggiungi Allievo',
     clientSearchPlaceholder: 'Cerca per nome o etichetta…',
+    sortRecent: 'Più recenti',
+    sortAZ: 'A-Z',
+    sortZA: 'Z-A',
     allTagsOption: 'Tutte le etichette',
     backToClients: '← Allievi', editProfile: 'Modifica Profilo', moveClientToTrash: 'Sposta nel cestino', deleteClientShort: 'Elimina cliente', newSession: '＋ Nuova Sessione',
     baselineSnapshot: 'Quadro Iniziale', generalNotes: 'Note Generali',
@@ -2016,6 +2036,12 @@ function applyTranslations() {
   document.getElementById('clients-subtitle').textContent = s.clientsSubtitle;
   document.getElementById('btn-add-client').textContent   = s.btnAddClient;
   document.getElementById('client-search').placeholder    = s.clientSearchPlaceholder;
+  const sortRecent = document.getElementById('client-sort-recent');
+  const sortAZ = document.getElementById('client-sort-az');
+  const sortZA = document.getElementById('client-sort-za');
+  if (sortRecent) sortRecent.textContent = s.sortRecent;
+  if (sortAZ) sortAZ.textContent = s.sortAZ;
+  if (sortZA) sortZA.textContent = s.sortZA;
   const tagFilterAll = document.getElementById('tag-filter-all');
   if (tagFilterAll) tagFilterAll.textContent = s.allTagsOption;
 
@@ -2544,12 +2570,58 @@ let connectFirstMarkerId = null;
 let themeMode = 'auto';
 let currentPalette = 'warm';
 let sessionDraft = {};
+let newClientHighlightId = null;
+let newClientHighlightTimeout = null;
 
 function getSessionSortDate(session) {
   return session?.date || '';
 }
 function getSessionSortCreatedAt(session) {
   return session?.createdAt || session?.updatedAt || '';
+}
+function getClientSortCreatedAt(client) {
+  return client?.createdAt || client?.updatedAt || '';
+}
+function getClientSortMode() {
+  if (!appState.ui || typeof appState.ui !== 'object') appState.ui = {};
+  return appState.ui.clientSort || 'recent';
+}
+function setClientSort(mode) {
+  const allowed = new Set(['recent', 'az', 'za']);
+  appState.ui.clientSort = allowed.has(mode) ? mode : 'recent';
+  saveState();
+  renderClients();
+}
+function sortClientsList(clients) {
+  const mode = getClientSortMode();
+  clients.sort((a, b) => {
+    if (mode === 'az') return (a.name || '').localeCompare(b.name || '');
+    if (mode === 'za') return (b.name || '').localeCompare(a.name || '');
+    const createdCmp = getClientSortCreatedAt(b).localeCompare(getClientSortCreatedAt(a));
+    if (createdCmp !== 0) return createdCmp;
+    const lsA = lastSessionDate(a.id);
+    const lsB = lastSessionDate(b.id);
+    if (lsA && lsB) return lsB.localeCompare(lsA);
+    if (lsA) return -1;
+    if (lsB) return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+}
+function triggerNewClientHighlight(clientId) {
+  if (newClientHighlightTimeout) clearTimeout(newClientHighlightTimeout);
+  newClientHighlightId = clientId;
+  newClientHighlightTimeout = setTimeout(() => {
+    newClientHighlightId = null;
+    newClientHighlightTimeout = null;
+    renderClients();
+  }, 4500);
+}
+function clearNewClientHighlight() {
+  if (!newClientHighlightId) return;
+  newClientHighlightId = null;
+  if (newClientHighlightTimeout) clearTimeout(newClientHighlightTimeout);
+  newClientHighlightTimeout = null;
+  renderClients();
 }
 function compareSessionsDesc(a, b) {
   const byDate = getSessionSortDate(b).localeCompare(getSessionSortDate(a));
@@ -2971,6 +3043,8 @@ function renderClients() {
   try {
     const search = (document.getElementById('client-search').value || '').toLowerCase();
     const tagFilter = document.getElementById('tag-filter').value;
+    const sortSelect = document.getElementById('client-sort');
+    if (sortSelect) sortSelect.value = getClientSortMode();
     renderPlanSummary();
     const allTags = new Set();
     appState.clients.filter(c => !c.isTrashed && (c.status || 'active') !== 'archived').forEach(c => (c.tags || []).forEach(t => allTags.add(t)));
@@ -2982,14 +3056,7 @@ function renderClients() {
     if (search) clients = clients.filter(c => c.name.toLowerCase().includes(search) || (c.tags || []).some(tg => tg.toLowerCase().includes(search)));
     if (tagFilter) clients = clients.filter(c => (c.tags || []).includes(tagFilter));
 
-    clients.sort((a, b) => {
-      const lsA = lastSessionDate(a.id);
-      const lsB = lastSessionDate(b.id);
-      if (lsA && lsB) return lsB.localeCompare(lsA);
-      if (lsA) return -1;
-      if (lsB) return 1;
-      return a.name.localeCompare(b.name);
-    });
+    sortClientsList(clients);
 
     const list = document.getElementById('client-list');
     if (clients.length === 0) {
@@ -3019,7 +3086,8 @@ function renderClients() {
       const sessionLimitPill = !isPremiumPlan() && (c.status || 'active') !== 'archived'
         ? `<span class="plan-pill" style="margin-top:6px;">📝 ${getClientSessionQuotaUsed(c.id)}/${FREE_PLAN_LIMITS.sessionsPerClient}</span>`
         : '';
-      return `<div class="client-card" onclick="openClient('${c.id}')">
+      const highlightClass = c.id === newClientHighlightId ? ' new-client-highlight' : '';
+      return `<div class="client-card${highlightClass}" onclick="openClient('${c.id}')">
         <div class="client-avatar">${esc(c.name.charAt(0).toUpperCase())}</div>
         <div class="client-info">
           <div class="client-name" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${esc(c.name)} ${statusBadgeHtml(c.status)}</div>
@@ -3116,6 +3184,7 @@ function saveClient() {
       }
       showToast(t('clientUpdated'), 'success');
     } else {
+      if (!appState.ui || typeof appState.ui !== 'object') appState.ui = {};
       const client = {
         id: uid(), name, tags,
         baselineSnapshot: document.getElementById('cf-baseline').value,
@@ -3127,10 +3196,13 @@ function saveClient() {
       };
       appState.clients.push(client);
       consumeClientQuota();
+      appState.ui.clientSort = 'recent';
+      triggerNewClientHighlight(client.id);
       showToast(t('clientAdded'), 'success');
     }
     saveState();
     closeModal('modal-client');
+    if (!editingClientId) showView('clients');
     renderClients();
     renderArchive();
     if (currentClientId === editingClientId) renderProfile();
@@ -5209,6 +5281,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (act === 'dup')  duplicateSession(sid);
     if (act === 'del')  deleteSession(sid);
   });
+  const clientsView = document.getElementById('view-clients');
+  if (clientsView) {
+    clientsView.addEventListener('pointerdown', () => clearNewClientHighlight(), { passive: true });
+    clientsView.addEventListener('keydown', () => clearNewClientHighlight());
+  }
 
   const safetyTimer = setTimeout(() => {
     const authScreen = document.getElementById('auth-screen');
