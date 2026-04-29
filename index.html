@@ -1191,7 +1191,7 @@ input[type=range]::-webkit-slider-thumb {
   <div class="search-bar" style="width:100%;">
     <div class="search-input-wrap">
       <span class="search-icon">⌕</span>
-      <input type="text" id="client-search" placeholder="—" oninput="renderClients()">
+      <input type="text" id="client-search" placeholder="—" oninput="renderClients()" autocomplete="off">
     </div>
     <select id="client-sort" onchange="setClientSort(this.value)" style="width:auto;min-width:140px;">
       <option value="recent" id="client-sort-recent">—</option>
@@ -1230,7 +1230,7 @@ input[type=range]::-webkit-slider-thumb {
         <div class="view-subtitle" id="all-sessions-subtitle">—</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="all-sessions-search" placeholder="—" style="width:220px;" oninput="renderAllSessions()">
+        <input type="text" id="all-sessions-search" placeholder="—" style="width:220px;" oninput="renderAllSessions()" autocomplete="off">
         <select id="all-sessions-client" onchange="renderAllSessions()" style="width:180px;">
           <option value="" id="all-sessions-all-clients">—</option>
         </select>
@@ -1413,11 +1413,11 @@ input[type=range]::-webkit-slider-thumb {
     <div class="form-grid">
       <div class="form-field">
         <label class="label" id="cf-name-label">—</label>
-        <input type="text" id="cf-name" placeholder="—">
+        <input type="text" id="cf-name" placeholder="—" autocomplete="off">
       </div>
       <div class="form-field">
         <label class="label" id="cf-tags-label">—</label>
-        <input type="text" id="cf-tags" placeholder="—">
+        <input type="text" id="cf-tags" placeholder="—" autocomplete="off">
       </div>
       <div class="form-field" id="cf-status-wrap">
         <label class="label" id="cf-status-label">—</label>
@@ -1430,16 +1430,16 @@ input[type=range]::-webkit-slider-thumb {
       </div>
       <div class="form-field">
         <label class="label" id="cf-baseline-label">—</label>
-        <textarea id="cf-baseline" placeholder="—"></textarea>
+        <textarea id="cf-baseline" placeholder="—" autocomplete="off"></textarea>
       </div>
       <div class="form-field">
         <label class="label" id="cf-notes-label">—</label>
-        <textarea id="cf-notes" placeholder="—"></textarea>
+        <textarea id="cf-notes" placeholder="—" autocomplete="off"></textarea>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal('modal-client')" id="btn-cancel-client">—</button>
-      <button class="btn btn-primary" onclick="saveClient()" id="btn-save-client">—</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal('modal-client')" id="btn-cancel-client">—</button>
+      <button type="button" class="btn btn-primary" onclick="saveClient()" id="btn-save-client">—</button>
     </div>
   </div>
 </div>
@@ -1465,7 +1465,7 @@ input[type=range]::-webkit-slider-thumb {
   <div class="modal" style="max-width:560px;">
     <div class="modal-title" style="font-size:18px;">📝 Note</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:10px;" id="modal-note-label"></div>
-    <textarea id="modal-note-text" style="min-height:180px;width:100%;font-size:15px;line-height:1.6;" placeholder="—"></textarea>
+    <textarea id="modal-note-text" style="min-height:180px;width:100%;font-size:15px;line-height:1.6;" placeholder="—" autocomplete="off"></textarea>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-note')" id="btn-cancel-note">—</button>
       <button class="btn btn-primary" onclick="saveNoteModal()" id="btn-save-note">—</button>
@@ -3481,7 +3481,7 @@ function renderSessionEditor() {
     let gridRows = STRUCT_ROWS.map(row => {
       const cells = STRUCT_COLS.map((col, i) => {
         const val = (sessionDraft.structuralObservationGrid || {})[row + '_' + col] || '';
-        return `<td><input type="text" value="${esc(val)}" onchange="sessionDraft.structuralObservationGrid['${row}_${col}']=this.value" placeholder="…"></td>`;
+        return `<td><input type="text" value="${esc(val)}" onchange="sessionDraft.structuralObservationGrid['${row}_${col}']=this.value" placeholder="…" autocomplete="off"></td>`;
       }).join('');
       return `<tr><td style="padding:6px 10px;font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);white-space:nowrap;">${row}</td>${cells}</tr>`;
     }).join('');
@@ -3504,7 +3504,7 @@ function renderSessionEditor() {
             oninput="sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;">
         </div>
         <span class="slider-val" id="sv-${f.key}">${displayVal}</span>
-        <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;" title="Clear">✕</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;" title="Clear">✕</button>
       </div>`;
     }).join('');
 
@@ -3514,13 +3514,13 @@ function renderSessionEditor() {
     document.getElementById('session-editor-content').innerHTML = `
       <div class="editor-topbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
         <div class="editor-topbar-main">
-          <button class="btn btn-ghost btn-sm" onclick="cancelSession()">${t('backToProfile')}</button>
+	          <button type="button" class="btn btn-ghost btn-sm" onclick="cancelSession()">${t('backToProfile')}</button>
           <div class="view-title view-title-editing" id="session-editor-title" style="margin-top:6px;">${isNew ? t('newSessionTitle') : t('editSessionTitle')}</div>
           <div class="view-subtitle">${esc(clientName)}</div>
         </div>
         <div class="btn-group editor-topbar-actions">
-          <button class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
-          <button class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
+	          <button type="button" class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
+	          <button type="button" class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
         </div>
       </div>
 
@@ -3533,19 +3533,19 @@ function renderSessionEditor() {
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('dateLabel')}</label>
-              <input type="date" id="s-date" value="${sessionDraft.date}" onchange="sessionDraft.date=this.value">
+	              <input type="date" id="s-date" value="${sessionDraft.date}" onchange="sessionDraft.date=this.value" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('durationLabel')}</label>
-              <input type="number" id="s-duration" value="${sessionDraft.durationMinutes || ''}" min="0" max="300" onchange="sessionDraft.durationMinutes=this.value?parseInt(this.value):null" placeholder="${durationPlaceholder}">
+	              <input type="number" id="s-duration" value="${sessionDraft.durationMinutes || ''}" min="0" max="300" onchange="sessionDraft.durationMinutes=this.value?parseInt(this.value):null" placeholder="${durationPlaceholder}" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('locationLabel')}</label>
-              <input type="text" id="s-location" value="${esc(sessionDraft.locationContext || '')}" onchange="sessionDraft.locationContext=this.value" placeholder="${t('locationPlaceholder')}">
+	              <input type="text" id="s-location" value="${esc(sessionDraft.locationContext || '')}" onchange="sessionDraft.locationContext=this.value" placeholder="${t('locationPlaceholder')}" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('sessionTagsLabel')}</label>
-              <input type="text" id="s-tags" value="${esc((sessionDraft.sessionTags || []).join(', '))}" onchange="sessionDraft.sessionTags=this.value.split(',').map(x=>x.trim()).filter(Boolean)" placeholder="${t('sessionTagsPlaceholder')}">
+	              <input type="text" id="s-tags" value="${esc((sessionDraft.sessionTags || []).join(', '))}" onchange="sessionDraft.sessionTags=this.value.split(',').map(x=>x.trim()).filter(Boolean)" placeholder="${t('sessionTagsPlaceholder')}" autocomplete="off">
             </div>
           </div>
           <div class="consent-row" style="margin-top:14px;">
@@ -3561,7 +3561,7 @@ function renderSessionEditor() {
           <span class="form-section-arrow">▼</span>
         </div>
         <div class="form-section-body">
-          <textarea id="s-goal" onchange="sessionDraft.studentRequestGoal=this.value" placeholder="${t('studentRequestPlaceholder')}" style="min-height:100px;">${esc(sessionDraft.studentRequestGoal || '')}</textarea>
+	          <textarea id="s-goal" onchange="sessionDraft.studentRequestGoal=this.value" placeholder="${t('studentRequestPlaceholder')}" style="min-height:100px;" autocomplete="off">${esc(sessionDraft.studentRequestGoal || '')}</textarea>
         </div>
       </div>
 
@@ -3590,15 +3590,15 @@ function renderSessionEditor() {
           <div class="form-grid">
             <div class="form-field">
               <label class="label">${t('functionalHypLabel')}</label>
-              <textarea onchange="sessionDraft.functionalHypothesis=this.value" placeholder="${t('functionalHypPlaceholder')}">${esc(sessionDraft.functionalHypothesis || '')}</textarea>
+	              <textarea onchange="sessionDraft.functionalHypothesis=this.value" placeholder="${t('functionalHypPlaceholder')}" autocomplete="off">${esc(sessionDraft.functionalHypothesis || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('keyConstraintsLabel')}</label>
-              <textarea onchange="sessionDraft.keyConstraints=this.value" placeholder="${t('keyConstraintsPlaceholder')}">${esc(sessionDraft.keyConstraints || '')}</textarea>
+	              <textarea onchange="sessionDraft.keyConstraints=this.value" placeholder="${t('keyConstraintsPlaceholder')}" autocomplete="off">${esc(sessionDraft.keyConstraints || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('lessonStrategyLabel')}</label>
-              <textarea onchange="sessionDraft.lessonStrategy=this.value" placeholder="${t('lessonStrategyPlaceholder')}">${esc(sessionDraft.lessonStrategy || '')}</textarea>
+	              <textarea onchange="sessionDraft.lessonStrategy=this.value" placeholder="${t('lessonStrategyPlaceholder')}" autocomplete="off">${esc(sessionDraft.lessonStrategy || '')}</textarea>
             </div>
           </div>
         </div>
@@ -3613,15 +3613,15 @@ function renderSessionEditor() {
           <div class="form-grid">
             <div class="form-field">
               <label class="label">${t('outcomesLabel')}</label>
-              <textarea onchange="sessionDraft.outcomesImmediate=this.value" placeholder="${t('outcomesPlaceholder')}">${esc(sessionDraft.outcomesImmediate || '')}</textarea>
+	              <textarea onchange="sessionDraft.outcomesImmediate=this.value" placeholder="${t('outcomesPlaceholder')}" autocomplete="off">${esc(sessionDraft.outcomesImmediate || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('followUpLabel')}</label>
-              <textarea onchange="sessionDraft.followUpNextTime=this.value" placeholder="${t('followUpPlaceholder')}">${esc(sessionDraft.followUpNextTime || '')}</textarea>
+	              <textarea onchange="sessionDraft.followUpNextTime=this.value" placeholder="${t('followUpPlaceholder')}" autocomplete="off">${esc(sessionDraft.followUpNextTime || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('ahaMomentLabel')}</label>
-              <textarea onchange="sessionDraft.ahaMoment=this.value" placeholder="${t('ahaMomentPlaceholder')}">${esc(sessionDraft.ahaMoment || '')}</textarea>
+	              <textarea onchange="sessionDraft.ahaMoment=this.value" placeholder="${t('ahaMomentPlaceholder')}" autocomplete="off">${esc(sessionDraft.ahaMoment || '')}</textarea>
             </div>
           </div>
         </div>
@@ -3636,7 +3636,7 @@ function renderSessionEditor() {
           ${slidersHtml}
           <div class="form-field" style="margin-top:10px;">
             <label class="label">${t('metricNotesLabel')}</label>
-            <textarea onchange="sessionDraft.metrics.metricNotes=this.value" placeholder="${t('metricNotesPlaceholder')}">${esc((sessionDraft.metrics && sessionDraft.metrics.metricNotes) || '')}</textarea>
+	            <textarea onchange="sessionDraft.metrics.metricNotes=this.value" placeholder="${t('metricNotesPlaceholder')}" autocomplete="off">${esc((sessionDraft.metrics && sessionDraft.metrics.metricNotes) || '')}</textarea>
           </div>
         </div>
       </div>
@@ -3651,13 +3651,13 @@ function renderSessionEditor() {
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('homeSuggestionLabel')}</label>
-              <textarea onchange="sessionDraft.homeSuggestion=this.value" placeholder="${t('homeSuggestionPlaceholder')}">${esc(sessionDraft.homeSuggestion || '')}</textarea>
+	              <textarea onchange="sessionDraft.homeSuggestion=this.value" placeholder="${t('homeSuggestionPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeSuggestion || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('homeFrequencyLabel')}</label>
-              <input type="text" onchange="sessionDraft.homeFrequency=this.value" value="${esc(sessionDraft.homeFrequency || '')}" placeholder="${t('homeFrequencyPlaceholder')}">
+	              <input type="text" onchange="sessionDraft.homeFrequency=this.value" value="${esc(sessionDraft.homeFrequency || '')}" placeholder="${t('homeFrequencyPlaceholder')}" autocomplete="off">
               <label class="label" style="margin-top:10px;">${t('homeNotesLabel')}</label>
-              <textarea onchange="sessionDraft.homeNotes=this.value" placeholder="${t('homeNotesPlaceholder')}">${esc(sessionDraft.homeNotes || '')}</textarea>
+	              <textarea onchange="sessionDraft.homeNotes=this.value" placeholder="${t('homeNotesPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeNotes || '')}</textarea>
             </div>
           </div>
         </div>
@@ -3674,12 +3674,12 @@ function renderSessionEditor() {
       </div>
 
       <div style="margin-top:10px;" class="btn-group editor-bottom-actions">
-        <button class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
-        <button class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
+	        <button type="button" class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
+	        <button type="button" class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
       </div>
       <div class="mobile-sticky-actions">
-        <button class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
-        <button class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
+	        <button type="button" class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
+	        <button type="button" class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
       </div>
     `;
 
@@ -3878,7 +3878,7 @@ function buildSkeletalPanel(view) {
       <td><select style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','type',this.value)">${typeOpts}</select></td>
       <td class="marker-note-cell">
         <div class="note-cell-inner">
-          <input type="text" style="font-size:10px;padding:2px 4px;flex:1;min-width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" value="${esc(m.note||'')}" placeholder="note…" onchange="updateMarker('${view}','${m.id}','note',this.value)">
+          <input type="text" style="font-size:10px;padding:2px 4px;flex:1;min-width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" value="${esc(m.note||'')}" placeholder="note…" onchange="updateMarker('${view}','${m.id}','note',this.value)" autocomplete="off">
           <button class="note-expand-btn" title="Expand note" onclick="openNoteModal('${view}','${m.id}')">⤢</button>
         </div>
       </td>
