@@ -1551,26 +1551,6 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
-<!-- MODAL: PASSWORD RECOVERY -->
-<div class="modal-overlay" id="modal-password-recovery" style="z-index:2100;">
-  <div class="modal" style="max-width:460px;">
-    <div class="modal-title" id="recovery-modal-title">—</div>
-    <div id="recovery-modal-message" style="display:none;font-size:13px;border-radius:8px;padding:10px 12px;margin-bottom:12px;"></div>
-    <div class="form-field" style="margin-bottom:12px;">
-      <label class="label" id="recovery-new-password-label">—</label>
-      <input type="password" id="recovery-new-password" autocomplete="new-password" placeholder="••••••••" style="width:100%;">
-    </div>
-    <div class="form-field" style="margin-bottom:16px;">
-      <label class="label" id="recovery-confirm-password-label">—</label>
-      <input type="password" id="recovery-confirm-password" autocomplete="new-password" placeholder="••••••••" style="width:100%;" onkeydown="if(event.key==='Enter')submitPasswordRecovery()">
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-secondary" onclick="closePasswordRecoveryModal()" id="recovery-cancel-btn">—</button>
-      <button type="button" class="btn btn-primary" onclick="submitPasswordRecovery()" id="recovery-save-btn">—</button>
-    </div>
-  </div>
-</div>
-
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
@@ -1727,10 +1707,7 @@ const STRINGS = {
     checkInbox: 'Check your inbox',
     confirmationSent: "We've sent a confirmation link to your email address.<br>Click the link to activate your account, then sign in.",
     noEmailSpam: 'No email? Check your spam folder.',
-    recoveryEmailSent: 'If the address is associated with an account, you will receive an email with a link to reset your password. Also check Spam or Promotions if you do not see it within a few minutes.',
-    recoveryModalTitle: 'Reset password', recoveryNewPassword: 'New password', recoveryConfirmPassword: 'Confirm new password',
-    recoverySaveBtn: 'Save new password', recoveryCancelBtn: 'Cancel', recoverySuccess: 'Password updated successfully. Please sign in with your new password.',
-    recoveryInvalidLink: 'Recovery link expired or invalid. Request a new password reset email.',
+    recoveryEmailSent: '✉️ Recovery email sent! Check your inbox (and spam folder).',
     enterEmailFirst: 'Please enter your email address above first.',
     enterEmailAndPw: 'Please enter your email and password.',
     pwNoMatch2: 'Passwords do not match.',
@@ -1906,10 +1883,7 @@ const STRINGS = {
     checkInbox: 'Controlla la tua email',
     confirmationSent: 'Abbiamo inviato un link di conferma al tuo indirizzo email.<br>Clicca il link per attivare il tuo account, poi accedi.',
     noEmailSpam: 'Non trovi l\'email? Controlla la cartella spam.',
-    recoveryEmailSent: 'Se l'indirizzo è associato a un account, riceverai un'email con il link per reimpostare la password. Controlla anche Spam o Promozioni se non la vedi entro pochi minuti.',
-    recoveryModalTitle: 'Reimposta password', recoveryNewPassword: 'Nuova password', recoveryConfirmPassword: 'Conferma nuova password',
-    recoverySaveBtn: 'Salva nuova password', recoveryCancelBtn: 'Annulla', recoverySuccess: 'Password aggiornata con successo. Ora accedi con la nuova password.',
-    recoveryInvalidLink: 'Link di recupero scaduto o non valido. Richiedi una nuova email di reset password.',
+    recoveryEmailSent: '✉️ Email di recupero inviata! Controlla la tua casella (e la cartella spam).',
     enterEmailFirst: 'Inserisci prima la tua email nel campo sopra.',
     enterEmailAndPw: 'Inserisci email e password.',
     pwNoMatch2: 'Le password non corrispondono.',
@@ -2189,11 +2163,6 @@ function applyTranslations() {
   document.getElementById('auth-remember-label').textContent = s.rememberMe;
   document.getElementById('auth-submit-btn').textContent     = authMode === 'login' ? s.signInBtn : s.createAccountBtn;
   document.getElementById('auth-forgot-btn').textContent     = s.forgotPassword;
-  document.getElementById('recovery-modal-title').textContent = s.recoveryModalTitle;
-  document.getElementById('recovery-new-password-label').textContent = s.recoveryNewPassword;
-  document.getElementById('recovery-confirm-password-label').textContent = s.recoveryConfirmPassword;
-  document.getElementById('recovery-save-btn').textContent = s.recoverySaveBtn;
-  document.getElementById('recovery-cancel-btn').textContent = s.recoveryCancelBtn;
   document.getElementById('auth-security-note').textContent  = s.securityNote;
   document.getElementById('auth-loading').textContent        = s.connectingMsg;
   document.getElementById('auth-test-conn').textContent      = s.testConnectionBtn;
@@ -2293,19 +2262,6 @@ let _refreshToken = null;
 let currentUser   = null;
 let syncTimeout   = null;
 let isOnline      = navigator.onLine;
-let isPasswordRecoveryActive = false;
-
-// Recovery modal uses a minimal supabase.auth.updateUser-compatible surface.
-const supabase = {
-  auth: {
-    async updateUser(payload) {
-      return _sbFetch('/auth/v1/user', {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
-    }
-  }
-};
 
 window.addEventListener('online',  () => { isOnline = true;  updateSyncIndicator(); scheduleSyncToCloud(); });
 window.addEventListener('offline', () => { isOnline = false; updateSyncIndicator(); });
@@ -5235,68 +5191,6 @@ async function testSupabaseConnection() {
   }
 }
 
-
-function setRecoveryModalMessage(message, type = 'error') {
-  const box = document.getElementById('recovery-modal-message');
-  if (!box) return;
-  box.style.display = message ? 'block' : 'none';
-  box.textContent = message || '';
-  box.style.background = type === 'success' ? 'var(--green-light)' : 'var(--red-light)';
-  box.style.border = '1px solid ' + (type === 'success' ? 'var(--green)' : '#e8c4c0');
-  box.style.color = type === 'success' ? 'var(--green)' : 'var(--red)';
-}
-
-function closePasswordRecoveryModal() {
-  const modal = document.getElementById('modal-password-recovery');
-  if (modal) modal.classList.remove('open');
-  isPasswordRecoveryActive = false;
-}
-
-function openPasswordRecoveryModal() {
-  const modal = document.getElementById('modal-password-recovery');
-  if (!modal) return;
-  document.getElementById('recovery-new-password').value = '';
-  document.getElementById('recovery-confirm-password').value = '';
-  setRecoveryModalMessage('');
-  modal.classList.add('open');
-  isPasswordRecoveryActive = true;
-}
-
-async function submitPasswordRecovery() {
-  const newPassword = document.getElementById('recovery-new-password').value;
-  const confirmPassword = document.getElementById('recovery-confirm-password').value;
-  if (!newPassword) { setRecoveryModalMessage(t('pwTooShort')); return; }
-  if (newPassword !== confirmPassword) { setRecoveryModalMessage(t('pwNoMatch2')); return; }
-  try {
-    await supabase.auth.updateUser({ password: newPassword });
-    setRecoveryModalMessage(t('recoverySuccess'), 'success');
-    showAuthSuccess(t('recoverySuccess'));
-    setTimeout(() => {
-      closePasswordRecoveryModal();
-      switchAuthTab('login', true);
-      showAuthScreen();
-      if (window.location.hash || /[?&](type|token_hash|access_token|refresh_token)=/.test(window.location.search)) {
-        history.replaceState({}, document.title, window.location.pathname);
-      }
-    }, 700);
-  } catch (e) {
-    setRecoveryModalMessage(t('recoveryInvalidLink'));
-  }
-}
-
-function maybeHandlePasswordRecoveryFromUrl() {
-  const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
-  const queryParams = new URLSearchParams(window.location.search || '');
-  const type = hashParams.get('type') || queryParams.get('type');
-  const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
-  const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
-  const hasRecoveryTokens = type === 'recovery' || !!(accessToken && refreshToken);
-  if (!hasRecoveryTokens) return false;
-  if (accessToken && refreshToken) _saveTokens(accessToken, refreshToken);
-  openPasswordRecoveryModal();
-  return true;
-}
-
 async function showResetPassword() {
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { showAuthError(t('enterEmailFirst')); return; }
@@ -5361,7 +5255,6 @@ function metricLabel(k) {
 // ════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
   showAuthScreen();
-  const recoveryFlowActive = maybeHandlePasswordRecoveryFromUrl();
 
   // Load language preference
   currentLang = localStorage.getItem('fi_lang') || 'it';
@@ -5404,11 +5297,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   try {
     _loadTokens();
-    if (recoveryFlowActive && !_accessToken) {
-      clearTimeout(safetyTimer);
-      showAuthScreen();
-      return;
-    }
     if (_accessToken) {
       const user = await authGetUser();
       if (user && !user.error) {
