@@ -1474,7 +1474,7 @@ input[type=range]::-webkit-slider-thumb {
 </div>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" style="position:fixed;inset:0;background:#eef1f5;background:var(--bg);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;">
+<div id="auth-screen" style="position:fixed;inset:0;background:#eef1f5;background:var(--bg);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
   <div style="width:100%;max-width:400px;">
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-family:var(--font-serif);font-size:28px;font-style:italic;color:var(--accent);margin-bottom:4px;">FI Logbook</div>
@@ -1493,7 +1493,7 @@ input[type=range]::-webkit-slider-thumb {
         <button id="auth-tab-signup" onclick="switchAuthTab('signup')" style="flex:1;background:none;border:none;padding:12px 8px;font-family:var(--font-sans);font-size:14px;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:400;transition:all .2s;">—</button>
       </div>
       <div id="auth-error" style="display:none;background:var(--red-light);border:1px solid #e8c4c0;border-radius:6px;padding:10px 12px;font-size:12px;color:var(--red);margin-bottom:16px;"></div>
-      <div id="auth-success" style="display:none;background:var(--green-light);border:1px solid var(--green);border-radius:10px;padding:20px 18px;margin-bottom:16px;text-align:center;"></div>
+      <div id="auth-success" style="display:none;background:var(--green-light);border:1px solid var(--green);border-radius:10px;padding:12px 14px;margin-bottom:12px;text-align:center;"></div>
       <div class="form-field" style="margin-bottom:14px;">
         <label class="label">Email</label>
         <input type="email" id="auth-email" name="email" autocomplete="off" placeholder="your@email.com" style="width:100%;">
@@ -1543,8 +1543,7 @@ input[type=range]::-webkit-slider-thumb {
         <button id="auth-forgot-btn" onclick="showResetPassword()" style="background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;font-family:var(--font-sans);">—</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:16px;font-family:var(--font-mono);" id="auth-security-note">—</p>
-    <p id="auth-loading" style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--font-mono);">—</p>
+        <p id="auth-loading" style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--font-mono);">—</p>
     <p style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--font-mono);">
       <button onclick="testSupabaseConnection()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;text-decoration:underline;font-family:var(--font-mono);" id="auth-test-conn">—</button>
     </p>
@@ -1704,9 +1703,9 @@ const STRINGS = {
     securityNote: 'Closed test access. This workspace is tied to your account. Please keep the link private and export JSON regularly for an independent backup.',
     connectingMsg: 'Connecting…',
     testConnectionBtn: 'Test connection',
-    checkInbox: 'Check your inbox',
-    confirmationSent: "We've sent a confirmation link to your email address.<br>Click the link to activate your account, then sign in.",
-    noEmailSpam: 'No email? Check your spam folder.',
+    checkInbox: 'Check your email',
+    confirmationSent: "We sent you a confirmation link. Also check Spam or Promotions if you don’t see it within a few minutes.",
+    noEmailSpam: '' ,
     recoveryEmailSent: '✉️ Recovery email sent! Check your inbox (and spam folder).',
     enterEmailFirst: 'Please enter your email address above first.',
     enterEmailAndPw: 'Please enter your email and password.',
@@ -1881,8 +1880,8 @@ const STRINGS = {
     connectingMsg: 'Connessione…',
     testConnectionBtn: 'Testa connessione',
     checkInbox: 'Controlla la tua email',
-    confirmationSent: 'Abbiamo inviato un link di conferma al tuo indirizzo email.<br>Clicca il link per attivare il tuo account, poi accedi.',
-    noEmailSpam: 'Non trovi l\'email? Controlla la cartella spam.',
+    confirmationSent: 'Ti abbiamo inviato un link di conferma. Controlla anche Spam o Promozioni se non lo vedi entro pochi minuti.',
+    noEmailSpam: '' ,
     recoveryEmailSent: '✉️ Email di recupero inviata! Controlla la tua casella (e la cartella spam).',
     enterEmailFirst: 'Inserisci prima la tua email nel campo sopra.',
     enterEmailAndPw: 'Inserisci email e password.',
@@ -2163,7 +2162,6 @@ function applyTranslations() {
   document.getElementById('auth-remember-label').textContent = s.rememberMe;
   document.getElementById('auth-submit-btn').textContent     = authMode === 'login' ? s.signInBtn : s.createAccountBtn;
   document.getElementById('auth-forgot-btn').textContent     = s.forgotPassword;
-  document.getElementById('auth-security-note').textContent  = s.securityNote;
   document.getElementById('auth-loading').textContent        = s.connectingMsg;
   document.getElementById('auth-test-conn').textContent      = s.testConnectionBtn;
 
@@ -5120,10 +5118,9 @@ function showAuthSuccess(msg, isSignup) {
   const el = document.getElementById('auth-success');
   if (isSignup) {
     el.innerHTML = `
-      <div style="font-size:32px;margin-bottom:10px;">✉️</div>
-      <div style="font-family:var(--font-serif);font-style:italic;font-size:20px;color:var(--green);margin-bottom:8px;">${t('checkInbox')}</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.7;">${t('confirmationSent')}</div>
-      <div style="margin-top:14px;font-size:11px;color:var(--text3);font-family:var(--font-mono);">${t('noEmailSpam')}</div>`;
+      <div style="font-size:22px;line-height:1;margin-bottom:6px;">✉️</div>
+      <div style="font-family:var(--font-serif);font-style:italic;font-size:18px;color:var(--green);margin-bottom:6px;">${t('checkInbox')}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5;">${t('confirmationSent')}</div>`;
   } else {
     el.innerHTML = '<div style="font-size:13px;color:var(--green);">' + msg + '</div>';
   }
