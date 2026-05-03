@@ -5132,6 +5132,7 @@ async function submitAuth() {
   const email    = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
   const btn      = document.getElementById('auth-submit-btn');
+  showAuthError('');
   if (!email || !password) { showAuthError(t('enterEmailAndPw')); return; }
   if (authMode === 'signup') {
     const confirm = document.getElementById('auth-confirm').value;
@@ -5141,7 +5142,7 @@ async function submitAuth() {
     if (!/[0-9]/.test(password))        { showAuthError(t('pwNoNum')); return; }
     if (!/[^A-Za-z0-9]/.test(password)) { showAuthError(t('pwNoSymbol')); return; }
   }
-  btn.disabled = true; btn.textContent = '…'; showAuthError('');
+  btn.disabled = true; btn.textContent = '…';
   try {
     if (authMode === 'signup') {
       const data = await authSignUp(email, password);
