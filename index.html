@@ -1487,7 +1487,7 @@ input[type=range]::-webkit-slider-thumb {
       <button class="lang-btn" id="auth-lang-btn-en" onclick="setLang('en')">🇬🇧 English</button>
     </div>
 
-    <div class="card" style="padding:28px;">
+    <div class="card" style="padding:28px;min-height:520px;display:flex;flex-direction:column;">
       <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);">
         <button id="auth-tab-login" onclick="switchAuthTab('login')" style="flex:1;background:none;border:none;padding:12px 8px;font-family:var(--font-sans);font-size:14px;cursor:pointer;color:var(--accent);font-weight:500;border-bottom:3px solid var(--accent);margin-bottom:-2px;transition:all .2s;">—</button>
         <button id="auth-tab-signup" onclick="switchAuthTab('signup')" style="flex:1;background:none;border:none;padding:12px 8px;font-family:var(--font-sans);font-size:14px;cursor:pointer;color:var(--text3);border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:400;transition:all .2s;">—</button>
@@ -1543,10 +1543,7 @@ input[type=range]::-webkit-slider-thumb {
         <button id="auth-forgot-btn" onclick="showResetPassword()" style="background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;font-family:var(--font-sans);">—</button>
       </div>
     </div>
-        <p id="auth-loading" style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--font-mono);">—</p>
-    <p style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--font-mono);">
-      <button onclick="testSupabaseConnection()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;text-decoration:underline;font-family:var(--font-mono);" id="auth-test-conn">—</button>
-    </p>
+    <p id="auth-loading" style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;font-family:var(--font-mono);">—</p>
   </div>
 </div>
 
@@ -1702,7 +1699,6 @@ const STRINGS = {
     forgotPassword: 'Forgot password?',
     securityNote: 'Closed test access. This workspace is tied to your account. Please keep the link private and export JSON regularly for an independent backup.',
     connectingMsg: 'Connecting…',
-    testConnectionBtn: 'Test connection',
     checkInbox: 'Check your email',
     confirmationSent: "We sent you a confirmation link. Also check Spam or Promotions if you don’t see it within a few minutes.",
     noEmailSpam: '' ,
@@ -1878,7 +1874,6 @@ const STRINGS = {
     forgotPassword: 'Password dimenticata?',
     securityNote: 'Accesso per test chiuso. Questo spazio di lavoro è legato al tuo account. Mantieni privato il link ed esporta regolarmente un JSON di backup.',
     connectingMsg: 'Connessione…',
-    testConnectionBtn: 'Testa connessione',
     checkInbox: 'Controlla la tua email',
     confirmationSent: 'Ti abbiamo inviato un link di conferma. Controlla anche Spam o Promozioni se non lo vedi entro pochi minuti.',
     noEmailSpam: '' ,
@@ -2163,7 +2158,7 @@ function applyTranslations() {
   document.getElementById('auth-submit-btn').textContent     = authMode === 'login' ? s.signInBtn : s.createAccountBtn;
   document.getElementById('auth-forgot-btn').textContent     = s.forgotPassword;
   document.getElementById('auth-loading').textContent        = s.connectingMsg;
-  document.getElementById('auth-test-conn').textContent      = s.testConnectionBtn;
+  refreshAuthDynamicTexts();
 
   // Lang buttons active state
   ['it','en'].forEach(lang => {
@@ -5020,6 +5015,7 @@ function esc(str) {
 // AUTH UI
 // ════════════════════════════════════════════════════════
 let authMode = 'login';
+let authUiState = { errorKey: '', successType: '' };
 
 function switchAuthTab(mode, keepSuccess) {
   authMode = mode;
@@ -5043,7 +5039,9 @@ function switchAuthTab(mode, keepSuccess) {
   document.getElementById('auth-tab-login').textContent  = t('signInTab');
   document.getElementById('auth-tab-signup').textContent = t('createAccountTab');
   document.getElementById('auth-error').style.display = 'none';
+  authUiState.errorKey = '';
   if (!keepSuccess) document.getElementById('auth-success').style.display = 'none';
+  if (!keepSuccess) authUiState.successType = '';
   if (!isLogin) updatePwHints();
   // Clear fields on tab switch
   document.getElementById('auth-email').value = '';
@@ -5128,10 +5126,21 @@ function showAuthSuccess(msg, isSignup) {
   document.getElementById('auth-error').style.display = 'none';
 }
 
+function refreshAuthDynamicTexts() {
+  if (authUiState.errorKey) showAuthError(t(authUiState.errorKey));
+  if (authUiState.successType === 'signup') showAuthSuccess('', true);
+  if (authMode === 'signup') {
+    updatePwHints();
+    checkPwMatch();
+  }
+}
+
 async function submitAuth() {
   const email    = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
-  const btn      = document.getElementById('auth-submit-btn');
+  const btn = document.getElementById('auth-submit-btn');
+  authUiState.errorKey = '';
+  showAuthError('');
   if (!email || !password) { showAuthError(t('enterEmailAndPw')); return; }
   if (authMode === 'signup') {
     const confirm = document.getElementById('auth-confirm').value;
@@ -5141,15 +5150,17 @@ async function submitAuth() {
     if (!/[0-9]/.test(password))        { showAuthError(t('pwNoNum')); return; }
     if (!/[^A-Za-z0-9]/.test(password)) { showAuthError(t('pwNoSymbol')); return; }
   }
-  btn.disabled = true; btn.textContent = '…'; showAuthError('');
+  btn.disabled = true; btn.textContent = '…';
   try {
     if (authMode === 'signup') {
       const data = await authSignUp(email, password);
       const needsConfirmation = data.user && !data.user.email_confirmed_at;
       if (needsConfirmation || !data.user) {
+        authUiState.successType = 'signup';
         showAuthSuccess('', true);
         switchAuthTab('login', true);
       } else {
+        authUiState.successType = '';
         await onSignedIn(data.user);
       }
     } else {
@@ -5159,7 +5170,14 @@ async function submitAuth() {
       await onSignedIn(data.user);
     }
   } catch(e) {
-    showAuthError(e.message || 'Authentication error.');
+    authUiState.successType = '';
+    const message = e.message || 'Authentication error.';
+    if (message === 'Email not confirmed' || message === 'Email non confermata') {
+      authUiState.errorKey = 'emailNotConfirmed';
+      showAuthError(t('emailNotConfirmed'));
+    } else {
+      showAuthError(message);
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = authMode === 'login' ? t('signInBtn') : t('createAccountBtn');
@@ -5175,17 +5193,6 @@ function togglePwVisibility(inputId, eyeId) {
   if (eye) eye.innerHTML = isHidden
     ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
     : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-}
-
-async function testSupabaseConnection() {
-  try {
-    const res = await fetch(SUPABASE_URL + '/auth/v1/health', { headers: { 'apikey': SUPABASE_KEY } });
-    const data = await res.json();
-    if (res.ok) showAuthSuccess('✓ Connected to Supabase (' + res.status + ')');
-    else showAuthError('Connection failed: HTTP ' + res.status);
-  } catch(e) {
-    showAuthError('Cannot reach Supabase: ' + e.message);
-  }
 }
 
 async function showResetPassword() {
