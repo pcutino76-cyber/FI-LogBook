@@ -539,6 +539,10 @@ input[type=range]::-webkit-slider-thumb {
 @keyframes modalIn { from { opacity:0; transform: scale(0.95); } to { opacity:1; transform: scale(1); } }
 .modal-title { font-family: var(--font-serif); font-size: 23px; font-weight: 300; margin-bottom: 14px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+#modal-reset-password { z-index: 2200; }
+#modal-reset-password .reset-password-message { display:none; border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 12px; font-size: 12px; line-height: 1.5; }
+#modal-reset-password .reset-password-message.error { display:block; background: var(--red-light); border: 1px solid #e8c4c0; color: var(--red); }
+#modal-reset-password .reset-password-message.success { display:block; background: var(--green-light); border: 1px solid var(--green); color: var(--green); }
 
 /* ─── MANUAL TEST ─── */
 .test-list { font-size: 12px; color: var(--text2); }
@@ -1547,6 +1551,29 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- MODAL: PASSWORD RECOVERY -->
+<div class="modal-overlay" id="modal-reset-password" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reset-password-title" style="max-width:420px;">
+    <div class="modal-title" id="reset-password-title">—</div>
+    <p id="reset-password-desc" style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;">—</p>
+    <form id="reset-password-form" onsubmit="handleResetPasswordSubmit(event)">
+      <div class="form-field" style="margin-bottom:14px;">
+        <label class="label" id="reset-password-new-label" for="reset-password-new">—</label>
+        <input type="password" id="reset-password-new" autocomplete="new-password" placeholder="••••••••" style="width:100%;" data-lpignore="true" data-form-type="other">
+      </div>
+      <div class="form-field" style="margin-bottom:4px;">
+        <label class="label" id="reset-password-confirm-label" for="reset-password-confirm">—</label>
+        <input type="password" id="reset-password-confirm" autocomplete="new-password" placeholder="••••••••" style="width:100%;" data-lpignore="true" data-form-type="other">
+      </div>
+      <div id="reset-password-message" class="reset-password-message" aria-live="polite"></div>
+      <div class="modal-actions" style="justify-content:stretch;">
+        <button class="btn btn-secondary" id="reset-password-back-login" type="button" onclick="handleResetPasswordBackToLogin()" style="width:100%;">—</button>
+        <button class="btn btn-primary" id="reset-password-submit" type="submit" style="width:100%;">—</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
@@ -1702,8 +1729,18 @@ const STRINGS = {
     checkInbox: 'Check your email',
     confirmationSent: "We sent you a confirmation link. Also check Spam or Promotions if you don’t see it within a few minutes.",
     noEmailSpam: '' ,
-    recoveryEmailSent: '✉️ Recovery email sent! Check your inbox (and spam folder).',
+    recoveryEmailSent: 'If the address is registered, you will receive a link to reset your password. Please also check Spam or Promotions.',
     enterEmailFirst: 'Please enter your email address above first.',
+    resetPasswordTitle: 'Reset password',
+    resetPasswordDesc: 'Enter a new password for your account.',
+    resetPasswordNewLabel: 'New password',
+    resetPasswordConfirmLabel: 'Confirm new password',
+    resetPasswordButton: 'Save new password',
+    resetPasswordBackToLogin: 'Back to login',
+    resetPasswordSuccess: 'Password updated. You can now sign in with your new password.',
+    resetPasswordEmptyError: 'Enter a new password.',
+    resetPasswordConfirmError: 'Passwords do not match.',
+    resetPasswordLinkError: 'The reset link is invalid or has expired. Please request a new link.',
     enterEmailAndPw: 'Please enter your email and password.',
     invalidLoginCredentials: 'Invalid login credentials',
     pwNoMatch2: 'Passwords do not match.',
@@ -1878,8 +1915,18 @@ const STRINGS = {
     checkInbox: 'Controlla la tua email',
     confirmationSent: 'Ti abbiamo inviato un link di conferma. Controlla anche Spam o Promozioni se non lo vedi entro pochi minuti.',
     noEmailSpam: '' ,
-    recoveryEmailSent: '✉️ Email di recupero inviata! Controlla la tua casella (e la cartella spam).',
+    recoveryEmailSent: 'Se l’indirizzo è registrato, riceverai un link per reimpostare la password. Controlla anche Spam o Promozioni.',
     enterEmailFirst: 'Inserisci prima la tua email nel campo sopra.',
+    resetPasswordTitle: 'Reimposta password',
+    resetPasswordDesc: 'Inserisci una nuova password per il tuo account.',
+    resetPasswordNewLabel: 'Nuova password',
+    resetPasswordConfirmLabel: 'Conferma nuova password',
+    resetPasswordButton: 'Salva nuova password',
+    resetPasswordBackToLogin: 'Torna al login',
+    resetPasswordSuccess: 'Password aggiornata. Ora puoi accedere con la nuova password.',
+    resetPasswordEmptyError: 'Inserisci una nuova password.',
+    resetPasswordConfirmError: 'Le password non coincidono.',
+    resetPasswordLinkError: 'Il link di reset non è valido o è scaduto. Richiedi un nuovo link.',
     enterEmailAndPw: 'Inserisci email e password.',
     invalidLoginCredentials: 'Credenziali non valide',
     pwNoMatch2: 'Le password non corrispondono.',
@@ -2160,6 +2207,7 @@ function applyTranslations() {
   document.getElementById('auth-submit-btn').textContent     = authMode === 'login' ? s.signInBtn : s.createAccountBtn;
   document.getElementById('auth-forgot-btn').textContent     = s.forgotPassword;
   document.getElementById('auth-loading').textContent        = s.connectingMsg;
+  refreshResetPasswordTexts();
   refreshAuthDynamicTexts();
 
   // Lang buttons active state
@@ -2255,6 +2303,10 @@ const PREMIUM_CHECK_FN_PATH = '';
 let _accessToken  = null;
 let _refreshToken = null;
 let currentUser   = null;
+let passwordRecoveryActive = false;
+let passwordRecoverySessionReady = false;
+let resetPasswordMessageKey = '';
+let resetPasswordMessageType = 'error';
 let syncTimeout   = null;
 let isOnline      = navigator.onLine;
 
@@ -2412,6 +2464,52 @@ async function authSignOut() {
 
 async function authResetPassword(email) {
   await _sbAuth('/recover', { email });
+}
+
+async function authUpdateUser(attrs) {
+  return _sbFetch('/auth/v1/user', {
+    method: 'PUT',
+    body: JSON.stringify(attrs)
+  });
+}
+
+const supabase = {
+  auth: {
+    async getSession() {
+      _loadTokens();
+      return {
+        data: { session: _accessToken ? { access_token: _accessToken, refresh_token: _refreshToken } : null },
+        error: null
+      };
+    },
+    async updateUser(attrs) {
+      try {
+        const data = await authUpdateUser(attrs);
+        return { data: { user: data }, error: null };
+      } catch (error) {
+        return { data: { user: null }, error };
+      }
+    },
+    onAuthStateChange(callback) {
+      window.__fiAuthStateCallbacks = window.__fiAuthStateCallbacks || [];
+      window.__fiAuthStateCallbacks.push(callback);
+      return {
+        data: {
+          subscription: {
+            unsubscribe() {
+              window.__fiAuthStateCallbacks = (window.__fiAuthStateCallbacks || []).filter(cb => cb !== callback);
+            }
+          }
+        }
+      };
+    }
+  }
+};
+
+function emitAuthStateChange(event, session = null) {
+  (window.__fiAuthStateCallbacks || []).forEach(callback => {
+    try { callback(event, session); } catch (e) { console.warn('[auth] listener skipped:', e.message); }
+  });
 }
 
 function getCurrentUserEmail() {
@@ -5200,6 +5298,159 @@ function togglePwVisibility(inputId, eyeId) {
     : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 }
 
+
+function refreshResetPasswordTexts() {
+  const map = {
+    'reset-password-title': 'resetPasswordTitle',
+    'reset-password-desc': 'resetPasswordDesc',
+    'reset-password-new-label': 'resetPasswordNewLabel',
+    'reset-password-confirm-label': 'resetPasswordConfirmLabel',
+    'reset-password-submit': 'resetPasswordButton',
+    'reset-password-back-login': 'resetPasswordBackToLogin'
+  };
+  Object.entries(map).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = t(key);
+  });
+  if (resetPasswordMessageKey) showResetPasswordMessageKey(resetPasswordMessageKey, resetPasswordMessageType);
+}
+
+function setResetPasswordMessage(message, type = 'error', key = '') {
+  const el = document.getElementById('reset-password-message');
+  resetPasswordMessageKey = key;
+  resetPasswordMessageType = type;
+  if (!el) return;
+  el.textContent = message || '';
+  el.className = 'reset-password-message' + (message ? ' ' + type : '');
+}
+
+function showResetPasswordMessageKey(key, type = 'error') {
+  setResetPasswordMessage(t(key), type, key);
+}
+
+function setResetPasswordFormDisabled(disabled) {
+  ['reset-password-new', 'reset-password-confirm', 'reset-password-submit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !!disabled;
+  });
+}
+
+function openResetPasswordModal(options = {}) {
+  passwordRecoveryActive = true;
+  refreshResetPasswordTexts();
+  if (options.error) showResetPasswordMessageKey('resetPasswordLinkError', 'error');
+  else setResetPasswordMessage('', 'error');
+  setResetPasswordFormDisabled(!!options.error);
+  const pw = document.getElementById('reset-password-new');
+  const cf = document.getElementById('reset-password-confirm');
+  if (pw) pw.value = '';
+  if (cf) cf.value = '';
+  const modal = document.getElementById('modal-reset-password');
+  if (modal) {
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  if (!options.error) setTimeout(() => pw?.focus(), 50);
+}
+
+function closeResetPasswordModal() {
+  const modal = document.getElementById('modal-reset-password');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  setResetPasswordMessage('', '');
+  setResetPasswordFormDisabled(false);
+  passwordRecoveryActive = false;
+  passwordRecoverySessionReady = false;
+}
+
+function getUrlRecoveryState() {
+  const params = new URLSearchParams(window.location.search || '');
+  const hash = (window.location.hash || '').replace(/^#/, '');
+  const hashParams = new URLSearchParams(hash);
+  hashParams.forEach((value, key) => params.set(key, value));
+  const type = params.get('type');
+  const error = params.get('error') || params.get('error_code') || params.get('error_description');
+  const hasRecoveryType = type === 'recovery';
+  const hasRecoveryToken = hasRecoveryType && params.get('access_token');
+  const hasRecoveryError = !!error && (hasRecoveryType || /recover|recovery|reset|expired|invalid/i.test(window.location.href));
+  return {
+    isRecovery: hasRecoveryType || hasRecoveryToken || hasRecoveryError,
+    hasToken: !!hasRecoveryToken,
+    hasError: !!hasRecoveryError,
+    accessToken: params.get('access_token'),
+    refreshToken: params.get('refresh_token')
+  };
+}
+
+function clearRecoveryUrlState() {
+  if (!window.history || !window.history.replaceState) return;
+  const cleanUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
+async function handlePasswordRecoveryRedirect() {
+  const state = getUrlRecoveryState();
+  if (!state.isRecovery) return false;
+
+  showAuthScreen();
+  passwordRecoveryActive = true;
+
+  if (state.hasError || !state.hasToken) {
+    clearRecoveryUrlState();
+    openResetPasswordModal({ error: true });
+    return true;
+  }
+
+  // Supabase recovery links arrive with short-lived tokens in the URL hash.
+  _saveTokens(state.accessToken, state.refreshToken || '', false);
+  passwordRecoverySessionReady = true;
+  clearRecoveryUrlState();
+  emitAuthStateChange('PASSWORD_RECOVERY', { access_token: _accessToken, refresh_token: _refreshToken });
+  openResetPasswordModal();
+  return true;
+}
+
+
+function handleResetPasswordBackToLogin() {
+  closeResetPasswordModal();
+  clearRecoveryUrlState();
+  showAuthScreen();
+  switchAuthTab('login');
+}
+
+async function handleResetPasswordSubmit(event) {
+  if (event) event.preventDefault();
+  const password = document.getElementById('reset-password-new')?.value || '';
+  const confirm = document.getElementById('reset-password-confirm')?.value || '';
+  const btn = document.getElementById('reset-password-submit');
+
+  if (!password) { showResetPasswordMessageKey('resetPasswordEmptyError', 'error'); return; }
+  if (password !== confirm) { showResetPasswordMessageKey('resetPasswordConfirmError', 'error'); return; }
+  if (!passwordRecoverySessionReady || !_accessToken) { showResetPasswordMessageKey('resetPasswordLinkError', 'error'); return; }
+
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = t('connectingMsg'); }
+    setResetPasswordMessage('', '');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    showResetPasswordMessageKey('resetPasswordSuccess', 'success');
+    setTimeout(() => {
+      closeResetPasswordModal();
+      _clearTokens();
+      currentUser = null;
+      clearRecoveryUrlState();
+      showAuthScreen();
+      switchAuthTab('login');
+    }, 900);
+  } catch (e) {
+    setResetPasswordMessage(e?.message || t('resetPasswordLinkError'), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('resetPasswordButton'); }
+  }
+}
+
 async function showResetPassword() {
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { showAuthError(t('enterEmailFirst')); return; }
@@ -5296,6 +5547,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     clientsView.addEventListener('keydown', () => clearNewClientHighlight());
   }
 
+  const recoveryRedirectHandled = await handlePasswordRecoveryRedirect();
+
   const safetyTimer = setTimeout(() => {
     const authScreen = document.getElementById('auth-screen');
     const appShell = document.getElementById('app-shell');
@@ -5306,7 +5559,10 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   try {
     _loadTokens();
-    if (_accessToken) {
+    if (recoveryRedirectHandled || passwordRecoveryActive) {
+      clearTimeout(safetyTimer);
+      showAuthScreen();
+    } else if (_accessToken) {
       const user = await authGetUser();
       if (user && !user.error) {
         clearTimeout(safetyTimer);
