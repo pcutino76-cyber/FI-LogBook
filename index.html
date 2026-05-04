@@ -1705,6 +1705,7 @@ const STRINGS = {
     recoveryEmailSent: '✉️ Recovery email sent! Check your inbox (and spam folder).',
     enterEmailFirst: 'Please enter your email address above first.',
     enterEmailAndPw: 'Please enter your email and password.',
+    invalidLoginCredentials: 'Invalid login credentials',
     pwNoMatch2: 'Passwords do not match.',
     pwTooShort: 'Password must be at least 8 characters.',
     pwNoUpper: 'Add at least one uppercase letter.',
@@ -1880,6 +1881,7 @@ const STRINGS = {
     recoveryEmailSent: '✉️ Email di recupero inviata! Controlla la tua casella (e la cartella spam).',
     enterEmailFirst: 'Inserisci prima la tua email nel campo sopra.',
     enterEmailAndPw: 'Inserisci email e password.',
+    invalidLoginCredentials: 'Credenziali non valide',
     pwNoMatch2: 'Le password non corrispondono.',
     pwTooShort: 'La password deve avere almeno 8 caratteri.',
     pwNoUpper: 'Aggiungi almeno una lettera maiuscola.',
@@ -5175,6 +5177,9 @@ async function submitAuth() {
     if (message === 'Email not confirmed' || message === 'Email non confermata') {
       authUiState.errorKey = 'emailNotConfirmed';
       showAuthError(t('emailNotConfirmed'));
+    } else if (String(message).trim() === 'Invalid login credentials') {
+      authUiState.errorKey = 'invalidLoginCredentials';
+      showAuthError(t('invalidLoginCredentials'));
     } else {
       showAuthError(message);
     }
