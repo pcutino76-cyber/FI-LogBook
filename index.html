@@ -1559,11 +1559,18 @@ input[type=range]::-webkit-slider-thumb {
     <form id="reset-password-form" onsubmit="handleResetPasswordSubmit(event)">
       <div class="form-field" style="margin-bottom:14px;">
         <label class="label" id="reset-password-new-label" for="reset-password-new">—</label>
-        <input type="password" id="reset-password-new" autocomplete="new-password" placeholder="••••••••" style="width:100%;" data-lpignore="true" data-form-type="other">
+        <input type="password" id="reset-password-new" autocomplete="new-password" placeholder="••••••••" style="width:100%;" oninput="handleResetPasswordInput()" data-lpignore="true" data-form-type="other">
+        <div id="reset-password-hints" style="background:var(--surface2);border-radius:6px;padding:10px 12px;margin-top:10px;font-size:11px;color:var(--text3);line-height:1.9;font-family:var(--font-mono);">
+          <div id="reset-hint-len">—</div>
+          <div id="reset-hint-upper">—</div>
+          <div id="reset-hint-num">—</div>
+          <div id="reset-hint-sym">—</div>
+        </div>
       </div>
       <div class="form-field" style="margin-bottom:4px;">
         <label class="label" id="reset-password-confirm-label" for="reset-password-confirm">—</label>
-        <input type="password" id="reset-password-confirm" autocomplete="new-password" placeholder="••••••••" style="width:100%;" data-lpignore="true" data-form-type="other">
+        <input type="password" id="reset-password-confirm" autocomplete="new-password" placeholder="••••••••" style="width:100%;" oninput="handleResetPasswordInput()" data-lpignore="true" data-form-type="other">
+        <div id="reset-password-match-msg" style="display:none;font-size:11px;font-family:var(--font-mono);margin-top:5px;padding-left:2px;"></div>
       </div>
       <div id="reset-password-message" class="reset-password-message" aria-live="polite"></div>
       <div class="modal-actions" style="justify-content:stretch;">
@@ -1729,7 +1736,7 @@ const STRINGS = {
     checkInbox: 'Check your email',
     confirmationSent: "We sent you a confirmation link. Also check Spam or Promotions if you don’t see it within a few minutes.",
     noEmailSpam: '' ,
-    recoveryEmailSent: 'If the address is registered, you will receive a link to reset your password. Please also check Spam or Promotions.',
+    recoveryEmailSent: 'If the email address is registered, you will receive a link to reset your password. Please also check Spam or Promotions.',
     enterEmailFirst: 'Please enter your email address above first.',
     resetPasswordTitle: 'Reset password',
     resetPasswordDesc: 'Enter a new password for your account.',
@@ -1737,9 +1744,11 @@ const STRINGS = {
     resetPasswordConfirmLabel: 'Confirm new password',
     resetPasswordButton: 'Save new password',
     resetPasswordBackToLogin: 'Back to login',
-    resetPasswordSuccess: 'Password updated. You can now sign in with your new password.',
+    resetPasswordSuccess: 'Password updated successfully',
     resetPasswordEmptyError: 'Enter a new password.',
     resetPasswordConfirmError: 'Passwords do not match.',
+    resetPasswordMatch: 'Passwords match',
+    resetPasswordNoMatch: 'Passwords do not match',
     resetPasswordLinkError: 'The reset link is invalid or has expired. Please request a new link.',
     enterEmailAndPw: 'Please enter your email and password.',
     invalidLoginCredentials: 'Invalid login credentials',
@@ -1923,9 +1932,11 @@ const STRINGS = {
     resetPasswordConfirmLabel: 'Conferma nuova password',
     resetPasswordButton: 'Salva nuova password',
     resetPasswordBackToLogin: 'Torna al login',
-    resetPasswordSuccess: 'Password aggiornata. Ora puoi accedere con la nuova password.',
+    resetPasswordSuccess: 'Password aggiornata con successo',
     resetPasswordEmptyError: 'Inserisci una nuova password.',
     resetPasswordConfirmError: 'Le password non coincidono.',
+    resetPasswordMatch: 'Le password coincidono',
+    resetPasswordNoMatch: 'Le password non coincidono',
     resetPasswordLinkError: 'Il link di reset non è valido o è scaduto. Richiedi un nuovo link.',
     enterEmailAndPw: 'Inserisci email e password.',
     invalidLoginCredentials: 'Credenziali non valide',
@@ -5163,6 +5174,19 @@ const PW_CHECK_MAP = {
   'hint-sym':   pw => /[^A-Za-z0-9]/.test(pw)
 };
 
+function isPasswordPolicyValid(pw) {
+  return PW_HINTS_KEYS.every(id => PW_CHECK_MAP[id](pw));
+}
+
+function renderPasswordPolicyHints(pw, idPrefix = '') {
+  PW_HINTS_KEYS.forEach(id => {
+    const ok = PW_CHECK_MAP[id](pw);
+    const el = document.getElementById(idPrefix + id);
+    const baseText = t(PW_HINT_KEYS_MAP[id]).replace('○ ','').replace('✓ ','');
+    if (el) { el.textContent = (ok ? '✓ ' : '○ ') + baseText; el.style.color = ok ? 'var(--green)' : 'var(--text3)'; }
+  });
+}
+
 function checkPwMatch() {
   const pw   = document.getElementById('auth-password').value;
   const conf = document.getElementById('auth-confirm').value;
@@ -5182,12 +5206,7 @@ function checkPwMatch() {
 function updatePwHints() {
   if (authMode !== 'signup') return;
   const pw = document.getElementById('auth-password').value;
-  PW_HINTS_KEYS.forEach(id => {
-    const ok = PW_CHECK_MAP[id](pw);
-    const el = document.getElementById(id);
-    const baseText = t(PW_HINT_KEYS_MAP[id]).replace('○ ','').replace('✓ ','');
-    if (el) { el.textContent = (ok ? '✓ ' : '○ ') + baseText; el.style.color = ok ? 'var(--green)' : 'var(--text3)'; }
-  });
+  renderPasswordPolicyHints(pw);
   const score = PW_HINTS_KEYS.filter(id => PW_CHECK_MAP[id](pw)).length;
   const bar  = document.getElementById('pw-strength-bar');
   const lbl  = document.getElementById('pw-strength-label');
@@ -5229,6 +5248,7 @@ function showAuthSuccess(msg, isSignup) {
 function refreshAuthDynamicTexts() {
   if (authUiState.errorKey) showAuthError(t(authUiState.errorKey));
   if (authUiState.successType === 'signup') showAuthSuccess('', true);
+  if (authUiState.successType === 'recovery') showAuthSuccess(t('recoveryEmailSent'));
   if (authMode === 'signup') {
     updatePwHints();
     checkPwMatch();
@@ -5312,6 +5332,7 @@ function refreshResetPasswordTexts() {
     const el = document.getElementById(id);
     if (el) el.textContent = t(key);
   });
+  handleResetPasswordInput();
   if (resetPasswordMessageKey) showResetPasswordMessageKey(resetPasswordMessageKey, resetPasswordMessageType);
 }
 
@@ -5328,11 +5349,38 @@ function showResetPasswordMessageKey(key, type = 'error') {
   setResetPasswordMessage(t(key), type, key);
 }
 
+function handleResetPasswordInput() {
+  const passwordEl = document.getElementById('reset-password-new');
+  const password = passwordEl?.value || '';
+  const confirm = document.getElementById('reset-password-confirm')?.value || '';
+  const matchMsg = document.getElementById('reset-password-match-msg');
+  const submit = document.getElementById('reset-password-submit');
+  const policyOk = isPasswordPolicyValid(password);
+  const matchOk = !!confirm && password === confirm;
+
+  renderPasswordPolicyHints(password, 'reset-');
+
+  if (matchMsg) {
+    if (!confirm) {
+      matchMsg.style.display = 'none';
+    } else {
+      matchMsg.style.display = 'block';
+      matchMsg.textContent = matchOk ? t('resetPasswordMatch') : t('resetPasswordNoMatch');
+      matchMsg.style.color = matchOk ? 'var(--green)' : 'var(--red)';
+    }
+  }
+
+  if (submit) submit.disabled = !!passwordEl?.disabled || !(passwordRecoverySessionReady && policyOk && matchOk);
+}
+
 function setResetPasswordFormDisabled(disabled) {
-  ['reset-password-new', 'reset-password-confirm', 'reset-password-submit'].forEach(id => {
+  ['reset-password-new', 'reset-password-confirm'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = !!disabled;
   });
+  const submit = document.getElementById('reset-password-submit');
+  if (submit) submit.disabled = !!disabled;
+  if (!disabled) handleResetPasswordInput();
 }
 
 function openResetPasswordModal(options = {}) {
@@ -5345,6 +5393,7 @@ function openResetPasswordModal(options = {}) {
   const cf = document.getElementById('reset-password-confirm');
   if (pw) pw.value = '';
   if (cf) cf.value = '';
+  handleResetPasswordInput();
   const modal = document.getElementById('modal-reset-password');
   if (modal) {
     modal.classList.add('open');
@@ -5427,15 +5476,19 @@ async function handleResetPasswordSubmit(event) {
   const btn = document.getElementById('reset-password-submit');
 
   if (!password) { showResetPasswordMessageKey('resetPasswordEmptyError', 'error'); return; }
+  if (!isPasswordPolicyValid(password)) { handleResetPasswordInput(); return; }
   if (password !== confirm) { showResetPasswordMessageKey('resetPasswordConfirmError', 'error'); return; }
   if (!passwordRecoverySessionReady || !_accessToken) { showResetPasswordMessageKey('resetPasswordLinkError', 'error'); return; }
 
+  let succeeded = false;
   try {
     if (btn) { btn.disabled = true; btn.textContent = t('connectingMsg'); }
     setResetPasswordMessage('', '');
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
+    succeeded = true;
     showResetPasswordMessageKey('resetPasswordSuccess', 'success');
+    setResetPasswordFormDisabled(true);
     setTimeout(() => {
       closeResetPasswordModal();
       _clearTokens();
@@ -5443,11 +5496,12 @@ async function handleResetPasswordSubmit(event) {
       clearRecoveryUrlState();
       showAuthScreen();
       switchAuthTab('login');
-    }, 900);
+    }, 3000);
   } catch (e) {
     setResetPasswordMessage(e?.message || t('resetPasswordLinkError'), 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = t('resetPasswordButton'); }
+    if (btn) btn.textContent = t('resetPasswordButton');
+    if (!succeeded) handleResetPasswordInput();
   }
 }
 
@@ -5456,6 +5510,7 @@ async function showResetPassword() {
   if (!email) { showAuthError(t('enterEmailFirst')); return; }
   try {
     await authResetPassword(email);
+    authUiState.successType = 'recovery';
     showAuthSuccess(t('recoveryEmailSent'));
   } catch(e) { showAuthError(e.message); }
 }
