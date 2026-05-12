@@ -1500,7 +1500,7 @@ input[type=range]::-webkit-slider-thumb {
       <div id="auth-success" style="display:none;background:var(--green-light);border:1px solid var(--green);border-radius:10px;padding:12px 14px;margin-bottom:12px;text-align:center;"></div>
       <div class="form-field" style="margin-bottom:14px;">
         <label class="label">Email</label>
-        <input type="email" id="auth-email" name="email" autocomplete="off" placeholder="your@email.com" style="width:100%;">
+        <input type="email" id="auth-email" name="email" autocomplete="username" placeholder="your@email.com" style="width:100%;">
       </div>
       <div class="form-field" style="margin-bottom:14px;">
         <label class="label" id="auth-password-label">—</label>
@@ -5337,6 +5337,26 @@ function togglePwVisibility(inputId, eyeId) {
 }
 
 
+
+function syncCredentialFieldVisibilityState() {
+  // Keep hidden credential inputs disabled to reduce aggressive Chrome Password Manager heuristics on non-auth screens.
+  const authVisible = document.getElementById('auth-screen')?.style.display === 'flex';
+  ['auth-email', 'auth-password', 'auth-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !authVisible;
+  });
+
+  const resetOpen = document.getElementById('modal-reset-password')?.classList.contains('open');
+  if (!resetOpen) {
+    ['reset-password-new', 'reset-password-confirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    });
+    const submit = document.getElementById('reset-password-submit');
+    if (submit) submit.disabled = true;
+  }
+}
+
 function refreshResetPasswordTexts() {
   const map = {
     'reset-password-title': 'resetPasswordTitle',
@@ -5418,6 +5438,7 @@ function openResetPasswordModal(options = {}) {
     modal.setAttribute('aria-hidden', 'false');
   }
   if (!options.error) setTimeout(() => pw?.focus(), 50);
+  syncCredentialFieldVisibilityState();
 }
 
 function closeResetPasswordModal() {
@@ -5433,6 +5454,7 @@ function closeResetPasswordModal() {
   currentUser = null;
   passwordRecoveryActive = false;
   passwordRecoverySessionReady = false;
+  syncCredentialFieldVisibilityState();
 }
 
 function getUrlRecoveryState() {
@@ -5554,6 +5576,7 @@ function showAuthScreen() {
     if (pw) pw.value = '';
     if (cf) cf.value = '';
   }, 50);
+  syncCredentialFieldVisibilityState();
 }
 
 function hideAuthScreen() {
@@ -5561,6 +5584,7 @@ function hideAuthScreen() {
   document.getElementById('app-shell').style.display = 'flex';
   document.getElementById('btn-logout').style.display = '';
   updateHeaderUserBadge();
+  syncCredentialFieldVisibilityState();
 }
 
 async function onSignedIn(user) {
