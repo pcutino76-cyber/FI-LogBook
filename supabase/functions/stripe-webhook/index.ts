@@ -14,6 +14,7 @@ type MetadataUpdates = {
 };
 
 const encoder = new TextEncoder();
+const STRIPE_SIGNATURE_TOLERANCE_SECONDS = 300;
 
 function secureCompare(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -22,18 +23,26 @@ function secureCompare(a: string, b: string): boolean {
   return result === 0;
 }
 
-function parseStripeSignature(signature: string): { timestamp: string; signatures: string[] } | null {
+function parseStripeSignature(signature: string): { timestamp: number; signatures: string[] } | null {
   const parts = signature.split(",").map((part) => part.trim());
-  const timestamp = parts.find((part) => part.startsWith("t="))?.slice(2);
+  const timestampRaw = parts.find((part) => part.startsWith("t="))?.slice(2);
   const signatures = parts.filter((part) => part.startsWith("v1=")).map((part) => part.slice(3));
 
-  if (!timestamp || signatures.length === 0) return null;
+  if (!timestampRaw || signatures.length === 0) return null;
+
+  const timestamp = Number.parseInt(timestampRaw, 10);
+  if (!Number.isFinite(timestamp)) return null;
+
   return { timestamp, signatures };
 }
 
 async function verifyStripeSignature(rawBody: string, signatureHeader: string, webhookSecret: string): Promise<boolean> {
   const parsed = parseStripeSignature(signatureHeader);
   if (!parsed) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  const ageInSeconds = Math.abs(now - parsed.timestamp);
+  if (ageInSeconds > STRIPE_SIGNATURE_TOLERANCE_SECONDS) return false;
 
   const signedPayload = `${parsed.timestamp}.${rawBody}`;
   const key = await crypto.subtle.importKey(
@@ -83,12 +92,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SECRET_KEY");
 
-    if (!stripeSecretKey || !stripeWebhookSecret || !supabaseUrl || !supabaseServiceRoleKey) {
+    if (!stripeWebhookSecret || !supabaseUrl || !supabaseServiceRoleKey) {
       return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
