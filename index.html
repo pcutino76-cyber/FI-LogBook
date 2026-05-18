@@ -688,6 +688,9 @@ input[type=range]::-webkit-slider-thumb {
 }
 .plan-row { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
 .plan-stats { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.upgrade-plan-cta { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+.upgrade-plan-cta .btn { min-height:40px; }
+@media (max-width:640px){ .upgrade-plan-cta .btn{ width:100%; } }
 .plan-pill {
   display:inline-flex; align-items:center; gap:6px;
   padding:4px 10px; border-radius:999px;
@@ -2019,7 +2022,10 @@ const EXTRA_STRINGS = {
     homeTemplateEmpty: 'Write a suggestion before saving it to the library.',
     pdfReportBtn: '📄 Client Report PDF',
     pdfLockedBtn: '📄 Client Report PDF (Premium)',
-    pdfPremiumBadge: 'Premium report'
+    pdfPremiumBadge: 'Premium report',
+    upgradeToPremiumBtn: 'Upgrade to Premium', checkoutLoading: 'Redirecting…',
+    checkoutSuccess: 'Payment completed. Premium will be updated shortly.', checkoutCancelled: 'Checkout cancelled.',
+    checkoutLoginRequired: 'Please sign in to continue.', checkoutStartError: 'Unable to start checkout. Please try again.'
   },
   it: {
     navArchive: 'Archivio', archiveTitle: 'Archivio', archiveSubtitle: 'Clienti archiviati fuori dallo spazio attivo',
@@ -2041,7 +2047,10 @@ const EXTRA_STRINGS = {
     homeTemplateEmpty: 'Scrivi prima un suggerimento da salvare in libreria.',
     pdfReportBtn: '📄 Report Cliente PDF',
     pdfLockedBtn: '📄 Report Cliente PDF (Premium)',
-    pdfPremiumBadge: 'Report Premium'
+    pdfPremiumBadge: 'Report Premium',
+    upgradeToPremiumBtn: 'Passa a Premium', checkoutLoading: 'Reindirizzamento…',
+    checkoutSuccess: 'Pagamento completato. Il piano Premium sarà aggiornato a breve.', checkoutCancelled: 'Checkout annullato.',
+    checkoutLoginRequired: 'Accedi per continuare.', checkoutStartError: 'Impossibile avviare il checkout. Riprova.'
   }
 };
 function x(key) {
@@ -3121,7 +3130,10 @@ function renderPlanSummary() {
   const warningHtml = warnings.map(msg =>
     `<div class="connect-mode-bar" style="margin-top:12px;border-color:var(--red);background:var(--red-light);color:var(--red);">⚠️ ${msg}</div>`
   ).join('');
-  const upgrade = tier === 'premium' ? '' : `<div class="chart-note">${x('upgradeNote')} ${x('archiveHint')} ${quotaMsg}</div>`;
+  const upgrade = tier === 'premium' ? '' : `<div class="chart-note">${x('upgradeNote')} ${x('archiveHint')} ${quotaMsg}</div>
+    <div class="upgrade-plan-cta">
+      <button id="btn-upgrade-premium" class="btn btn-secondary" type="button" onclick="startPremiumCheckout()">${x('upgradeToPremiumBtn')}</button>
+    </div>`;
   const statusBadge = tier === 'premium' ? '' : `<div>${statusBadgeHtml('active')}</div>`;
   el.style.display = '';
   el.innerHTML = `
@@ -4727,6 +4739,59 @@ async function verifyPremiumEntitlementForPdf() {
   return { allowed: isPremiumPlan(), mode: isOnline ? 'metadata-fallback' : 'offline-metadata', weak: true };
 }
 
+
+let premiumCheckoutInFlight = false;
+
+async function startPremiumCheckout() {
+  if (premiumCheckoutInFlight) return;
+  if (!currentUser || !_accessToken) {
+    showToast(x('checkoutLoginRequired'), 'error');
+    return;
+  }
+  const btn = document.getElementById('btn-upgrade-premium');
+  const originalLabel = btn ? btn.textContent : '';
+  try {
+    premiumCheckoutInFlight = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = x('checkoutLoading');
+    }
+    const res = await fetch(SUPABASE_URL + '/functions/v1/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + _accessToken,
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || data?.message || 'checkout_error');
+    if (!data?.url) throw new Error('missing_checkout_url');
+    window.location.assign(data.url);
+  } catch (e) {
+    showToast(x('checkoutStartError'), 'error', 4200);
+    console.error('Checkout start error:', e);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel || x('upgradeToPremiumBtn');
+    }
+    premiumCheckoutInFlight = false;
+  }
+}
+
+function handleCheckoutUrlState() {
+  const params = new URLSearchParams(window.location.search || '');
+  const checkoutState = params.get('checkout');
+  if (!checkoutState) return;
+  if (checkoutState === 'success') showToast(x('checkoutSuccess'), 'success', 4500);
+  if (checkoutState === 'cancelled') showToast(x('checkoutCancelled'), 'info', 4000);
+  params.delete('checkout');
+  const nextQuery = params.toString();
+  const nextUrl = window.location.pathname + (nextQuery ? '?' + nextQuery : '') + (window.location.hash || '');
+  if (window.history && window.history.replaceState) window.history.replaceState({}, document.title, nextUrl);
+}
+
 function metricDeltaLabel(first, last) {
   if (first == null || last == null) return '—';
   const delta = last - first;
@@ -5627,6 +5692,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   currentPalette = localStorage.getItem('fi_palette') || 'warm';
   applyTheme();
   applyTranslations();
+  handleCheckoutUrlState();
   renderHelpContent();
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
