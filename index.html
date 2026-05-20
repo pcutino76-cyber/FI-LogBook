@@ -4780,12 +4780,26 @@ async function startPremiumCheckout() {
   }
 }
 
+let pendingCheckoutToastKey = '';
+
+function flushPendingCheckoutToast() {
+  if (!pendingCheckoutToastKey) return;
+  const appShellVisible = document.getElementById('app-shell')?.style.display !== 'none';
+  if (!appShellVisible) return;
+
+  if (pendingCheckoutToastKey === 'checkoutSuccess') showToast(x('checkoutSuccess'), 'success', 4500);
+  if (pendingCheckoutToastKey === 'checkoutCancelled') showToast(x('checkoutCancelled'), 'info', 4000);
+  pendingCheckoutToastKey = '';
+}
+
 function handleCheckoutUrlState() {
   const params = new URLSearchParams(window.location.search || '');
   const checkoutState = params.get('checkout');
   if (!checkoutState) return;
-  if (checkoutState === 'success') showToast(x('checkoutSuccess'), 'success', 4500);
-  if (checkoutState === 'cancelled') showToast(x('checkoutCancelled'), 'info', 4000);
+
+  if (checkoutState === 'success') pendingCheckoutToastKey = 'checkoutSuccess';
+  if (checkoutState === 'cancelled') pendingCheckoutToastKey = 'checkoutCancelled';
+
   params.delete('checkout');
   const nextQuery = params.toString();
   const nextUrl = window.location.pathname + (nextQuery ? '?' + nextQuery : '') + (window.location.hash || '');
@@ -5662,6 +5676,7 @@ async function onSignedIn(user) {
   if (!loaded) loadState({ allowLegacyMigration: true });
   showView('clients');
   hideAuthScreen();
+  flushPendingCheckoutToast();
   updateSyncIndicator(isOnline ? 'synced' : null);
 }
 
