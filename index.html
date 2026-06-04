@@ -2628,10 +2628,14 @@ async function loadFromCloud() {
     const clients  = await _sbSelect('clients',  { user_id: uid });
     const sessions = await _sbSelect('sessions', { user_id: uid });
     if (Array.isArray(clients) && Array.isArray(sessions)) {
-      // Cloud è source of truth — sostituisce tutto, nessun merge con localStorage
+      const localHomeLibrary = readLocalHomeLibrary();
+      const currentHomeLibrary = Array.isArray(appState.ui?.homeLibrary) ? appState.ui.homeLibrary : [];
+      // Cloud è source of truth per clienti e sessioni; i template pratica a casa restano locali.
       appState.clients  = clients;
       appState.sessions = sessions;
       normalizeState();
+      appState.ui.homeLibrary = mergeHomeLibraries(appState.ui.homeLibrary, currentHomeLibrary);
+      appState.ui.homeLibrary = mergeHomeLibraries(appState.ui.homeLibrary, localHomeLibrary);
       saveState();
       return clients.length > 0 || sessions.length > 0;
     }
@@ -2835,6 +2839,31 @@ function canCreateSessionForClient(clientId, editingSessionId = null) {
   return perClientUsed < FREE_PLAN_LIMITS.sessionsPerClient && totalUsed < FREE_PLAN_LIMITS.totalSessions;
 }
 
+
+function readLocalHomeLibrary() {
+  try {
+    const raw = localStorage.getItem(getUserScopedStorageKey());
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.ui?.homeLibrary) ? parsed.ui.homeLibrary : [];
+  } catch(e) {
+    console.warn('[homeLibrary] Unable to read local templates:', e.message);
+    return [];
+  }
+}
+
+function mergeHomeLibraries(primary = [], secondary = []) {
+  const merged = [];
+  const seen = new Set();
+  [...primary, ...secondary].forEach(item => {
+    if (!item || typeof item !== 'object') return;
+    const id = item.id || uid();
+    if (seen.has(id)) return;
+    seen.add(id);
+    merged.push({ ...item, id });
+  });
+  return merged;
+}
 
 function loadState(options = {}) {
   const { allowLegacyMigration = true } = options;
