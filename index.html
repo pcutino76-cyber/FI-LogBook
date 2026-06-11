@@ -2020,6 +2020,10 @@ const EXTRA_STRINGS = {
     homeTemplateSaved: 'Home practice saved to library', homeTemplateRemoved: 'Template removed from library',
     homeTemplateApplied: 'Template applied to current session', homeTemplatePrompt: 'Name this reusable home practice',
     homeTemplateEmpty: 'Write a suggestion before saving it to the library.',
+    homeTemplateLoginRequired: 'Sign in and go online to save home practice templates.',
+    homeTemplateLoadError: 'Could not load home practice templates. Clients and sessions will still load.',
+    homeTemplateSaveError: 'Could not save this template to the cloud. Please try again.',
+    homeTemplateRemoveError: 'Could not remove this template from the cloud. Please try again.',
     pdfReportBtn: '📄 Client Report PDF',
     pdfLockedBtn: '📄 Client Report PDF (Premium)',
     pdfPremiumBadge: 'Premium report',
@@ -2045,6 +2049,10 @@ const EXTRA_STRINGS = {
     homeTemplateSaved: 'Pratica a casa salvata in libreria', homeTemplateRemoved: 'Template rimosso dalla libreria',
     homeTemplateApplied: 'Template applicato alla sessione corrente', homeTemplatePrompt: 'Dai un nome a questa pratica riusabile',
     homeTemplateEmpty: 'Scrivi prima un suggerimento da salvare in libreria.',
+    homeTemplateLoginRequired: 'Accedi e resta online per salvare i template di pratica a casa.',
+    homeTemplateLoadError: 'Impossibile caricare i template di pratica a casa. Clienti e sessioni saranno comunque caricati.',
+    homeTemplateSaveError: 'Impossibile salvare questo template nel cloud. Riprova.',
+    homeTemplateRemoveError: 'Impossibile rimuovere questo template dal cloud. Riprova.',
     pdfReportBtn: '📄 Report Cliente PDF',
     pdfLockedBtn: '📄 Report Cliente PDF (Premium)',
     pdfPremiumBadge: 'Report Premium',
@@ -2628,20 +2636,52 @@ async function loadFromCloud() {
     const clients  = await _sbSelect('clients',  { user_id: uid });
     const sessions = await _sbSelect('sessions', { user_id: uid });
     if (Array.isArray(clients) && Array.isArray(sessions)) {
-      const localHomeLibrary = readLocalHomeLibrary();
-      const currentHomeLibrary = Array.isArray(appState.ui?.homeLibrary) ? appState.ui.homeLibrary : [];
-      // Cloud è source of truth per clienti e sessioni; i template pratica a casa restano locali.
+      const currentHomeLibrary = Array.isArray(appState.ui?.homeLibrary) ? appState.ui.homeLibrary : readLocalHomeLibrary();
+      // Cloud remains the source of truth for clients/sessions only.
       appState.clients  = clients;
       appState.sessions = sessions;
       normalizeState();
-      appState.ui.homeLibrary = mergeHomeLibraries(appState.ui.homeLibrary, currentHomeLibrary);
-      appState.ui.homeLibrary = mergeHomeLibraries(appState.ui.homeLibrary, localHomeLibrary);
+      appState.ui.homeLibrary = currentHomeLibrary;
       saveState();
       return clients.length > 0 || sessions.length > 0;
     }
     return false;
   } catch(e) {
     console.error('Load from cloud error:', e);
+    return false;
+  }
+}
+
+function mapHomePracticeTemplateFromCloud(row) {
+  return {
+    id: row.id,
+    name: row.name || '',
+    suggestion: row.suggestion || '',
+    frequency: row.frequency || '',
+    notes: row.notes || '',
+    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString()
+  };
+}
+
+async function loadHomePracticeTemplatesFromCloud() {
+  if (!currentUser || !isOnline) return false;
+  try {
+    const uid = currentUser.id;
+    const rows = await _sbFetch('/rest/v1/home_practice_templates?select=*&user_id=eq.' + encodeURIComponent(uid) + '&order=created_at.desc', {
+      headers: { 'Range': '0-9999' }
+    });
+    if (!Array.isArray(rows)) return false;
+    const cloudHomeLibrary = rows.map(mapHomePracticeTemplateFromCloud);
+    if (cloudHomeLibrary.length > 0) {
+      appState.ui.homeLibrary = cloudHomeLibrary;
+      saveState();
+      if (viewName === 'session' && sessionDraft && sessionDraft.clientId) renderSessionEditor();
+    }
+    return true;
+  } catch(e) {
+    console.error('Load home practice templates error:', e);
+    showToast(x('homeTemplateLoadError'), 'error', 4200);
     return false;
   }
 }
@@ -4295,14 +4335,42 @@ function buildHomeLibraryControls() {
     </div>
   </div>`;
 }
-function saveCurrentHomeTemplate() {
+async function saveCurrentHomeTemplate() {
   const suggestion = (sessionDraft.homeSuggestion || '').trim();
   const frequency = (sessionDraft.homeFrequency || '').trim();
   const notes = (sessionDraft.homeNotes || '').trim();
   if (!suggestion) { showToast(x('homeTemplateEmpty'), 'error'); return; }
   const name = prompt(x('homeTemplatePrompt'), suggestion.slice(0, 40));
-  if (!name) return;
-  getHomeLibrary().push({ id: uid(), name: name.trim(), suggestion, frequency, notes, createdAt: new Date().toISOString() });
+  if (!name || !name.trim()) return;
+
+  if (currentUser) {
+    if (!isOnline) { showToast(x('homeTemplateLoginRequired'), 'error'); return; }
+    try {
+      const rows = await _sbFetch('/rest/v1/home_practice_templates', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: currentUser.id,
+          name: name.trim(),
+          suggestion,
+          frequency,
+          notes
+        }),
+        headers: { 'Prefer': 'return=representation' }
+      });
+      const inserted = Array.isArray(rows) ? rows[0] : rows;
+      if (!inserted || !inserted.id) throw new Error('Missing inserted template id');
+      getHomeLibrary().unshift(mapHomePracticeTemplateFromCloud(inserted));
+      saveState();
+      renderSessionEditor();
+      showToast(x('homeTemplateSaved'), 'success');
+    } catch(e) {
+      console.error('Save home practice template error:', e);
+      showToast(x('homeTemplateSaveError'), 'error', 4200);
+    }
+    return;
+  }
+
+  getHomeLibrary().unshift({ id: uid(), name: name.trim(), suggestion, frequency, notes, createdAt: new Date().toISOString() });
   saveState();
   renderSessionEditor();
   showToast(x('homeTemplateSaved'), 'success');
@@ -4317,8 +4385,28 @@ function applyHomeTemplate(templateId) {
   renderSessionEditor();
   showToast(x('homeTemplateApplied'), 'success');
 }
-function removeHomeTemplate(templateId) {
+async function removeHomeTemplate(templateId) {
   if (!templateId) return;
+
+  if (currentUser) {
+    if (!isOnline) { showToast(x('homeTemplateRemoveError'), 'error'); return; }
+    try {
+      const deletedRows = await _sbFetch('/rest/v1/home_practice_templates?id=eq.' + encodeURIComponent(templateId) + '&user_id=eq.' + encodeURIComponent(currentUser.id), {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=representation' }
+      });
+      if (!Array.isArray(deletedRows) || deletedRows.length === 0) throw new Error('Template was not deleted');
+      appState.ui.homeLibrary = getHomeLibrary().filter(item => item.id !== templateId);
+      saveState();
+      renderSessionEditor();
+      showToast(x('homeTemplateRemoved'), 'success');
+    } catch(e) {
+      console.error('Remove home practice template error:', e);
+      showToast(x('homeTemplateRemoveError'), 'error', 4200);
+    }
+    return;
+  }
+
   appState.ui.homeLibrary = getHomeLibrary().filter(item => item.id !== templateId);
   saveState();
   renderSessionEditor();
@@ -5698,11 +5786,13 @@ function hideAuthScreen() {
 async function onSignedIn(user) {
   currentUser = user;
   resetUiResidualState();
-  appState = { clients: [], sessions: [], ui: { homeLibrary: [] } };
+  const cachedHomeLibrary = readLocalHomeLibrary();
+  appState = { clients: [], sessions: [], ui: { homeLibrary: cachedHomeLibrary } };
   updateHeaderUserBadge();
   updateSyncIndicator('syncing');
   const loaded = await loadFromCloud();
   if (!loaded) loadState({ allowLegacyMigration: true });
+  await loadHomePracticeTemplatesFromCloud();
   showView('clients');
   hideAuthScreen();
   flushPendingCheckoutToast();
