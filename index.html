@@ -2636,7 +2636,7 @@ async function loadFromCloud() {
     const clients  = await _sbSelect('clients',  { user_id: uid });
     const sessions = await _sbSelect('sessions', { user_id: uid });
     if (Array.isArray(clients) && Array.isArray(sessions)) {
-      const currentHomeLibrary = Array.isArray(appState.ui?.homeLibrary) ? appState.ui.homeLibrary : [];
+      const currentHomeLibrary = Array.isArray(appState.ui?.homeLibrary) ? appState.ui.homeLibrary : readLocalHomeLibrary();
       // Cloud remains the source of truth for clients/sessions only.
       appState.clients  = clients;
       appState.sessions = sessions;
@@ -2672,9 +2672,12 @@ async function loadHomePracticeTemplatesFromCloud() {
       headers: { 'Range': '0-9999' }
     });
     if (!Array.isArray(rows)) return false;
-    appState.ui.homeLibrary = rows.map(mapHomePracticeTemplateFromCloud);
-    saveState();
-    if (viewName === 'session' && sessionDraft && sessionDraft.clientId) renderSessionEditor();
+    const cloudHomeLibrary = rows.map(mapHomePracticeTemplateFromCloud);
+    if (cloudHomeLibrary.length > 0) {
+      appState.ui.homeLibrary = cloudHomeLibrary;
+      saveState();
+      if (viewName === 'session' && sessionDraft && sessionDraft.clientId) renderSessionEditor();
+    }
     return true;
   } catch(e) {
     console.error('Load home practice templates error:', e);
@@ -5783,7 +5786,8 @@ function hideAuthScreen() {
 async function onSignedIn(user) {
   currentUser = user;
   resetUiResidualState();
-  appState = { clients: [], sessions: [], ui: { homeLibrary: [] } };
+  const cachedHomeLibrary = readLocalHomeLibrary();
+  appState = { clients: [], sessions: [], ui: { homeLibrary: cachedHomeLibrary } };
   updateHeaderUserBadge();
   updateSyncIndicator('syncing');
   const loaded = await loadFromCloud();
