@@ -1662,6 +1662,7 @@ const STRINGS = {
     metricBreath: 'Breath Ease', metricAgency: 'Agency / Autonomy',
     metricNotesLabel: 'Metric Notes', metricNotesPlaceholder: 'Context for the scores above…',
     homeIntegrationTitle: 'Home Integration',
+    homeIntegrationHelper: 'Record the home practice suggested for this specific session.',
     homeSuggestionLabel: 'Home Suggestion',
     homeSuggestionPlaceholder: 'Movement, awareness, or exploration for home…',
     homeFrequencyLabel: 'Frequency', homeFrequencyPlaceholder: 'Daily, 3×/week…',
@@ -1860,6 +1861,7 @@ const STRINGS = {
     metricBreath: 'Facilità Respiratoria', metricAgency: 'Autonomia / Agency',
     metricNotesLabel: 'Note sulle Metriche', metricNotesPlaceholder: 'Contesto per i punteggi sopra…',
     homeIntegrationTitle: 'Integrazione a Casa',
+    homeIntegrationHelper: 'Registra la pratica a casa suggerita per questa specifica sessione.',
     homeSuggestionLabel: 'Suggerimento per Casa',
     homeSuggestionPlaceholder: 'Movimento, consapevolezza, o esplorazione per casa…',
     homeFrequencyLabel: 'Frequenza', homeFrequencyPlaceholder: 'Quotidianamente, 3×/settimana…',
@@ -2015,16 +2017,6 @@ const EXTRA_STRINGS = {
     freeClientCreationLimitReached: 'Free plan limit reached: max 7 client cards created in the free account.',
     freeSessionLimitReached: 'Free plan limit reached: max 7 created sessions for each client, up to 35 total in the free account.',
     profileUsage: 'Usage', archiveHint: 'Archived clients do not count toward the active workspace limit.',
-    homeLibraryTitle: 'Home practice library', homeLibraryPlaceholder: 'Choose a saved suggestion…',
-    homeLibraryApply: 'Apply', homeLibrarySave: 'Save current', homeLibraryRemove: 'Remove',
-    homeTemplateSaved: 'Home practice saved to library', homeTemplateRemoved: 'Template removed from library',
-    homeTemplateApplied: 'Template applied. Save the session to keep these changes.', homeTemplatePrompt: 'Name this reusable home practice',
-    homeTemplateRemoveConfirm: 'Remove this template from your Home Practice Library? It will remain in sessions where it was already applied.',
-    homeTemplateEmpty: 'Write a suggestion before saving it to the library.',
-    homeTemplateLoginRequired: 'Sign in and go online to save home practice templates.',
-    homeTemplateLoadError: 'Could not load home practice templates. Clients and sessions will still load.',
-    homeTemplateSaveError: 'Could not save this template to the cloud. Please try again.',
-    homeTemplateRemoveError: 'Could not remove this template from the cloud. Please try again.',
     pdfReportBtn: '📄 Client Report PDF',
     pdfLockedBtn: '📄 Client Report PDF (Premium)',
     pdfPremiumBadge: 'Premium report',
@@ -2045,16 +2037,6 @@ const EXTRA_STRINGS = {
     freeClientCreationLimitReached: 'Limite piano free raggiunto: massimo 7 schede cliente create nell’account free.',
     freeSessionLimitReached: 'Limite piano free raggiunto: massimo 7 sessioni create per ogni cliente, fino a 35 totali nell’account free.',
     profileUsage: 'Utilizzo', archiveHint: 'I clienti archiviati non contano nel limite dello spazio attivo.',
-    homeLibraryTitle: 'Libreria pratica a casa', homeLibraryPlaceholder: 'Scegli un suggerimento salvato…',
-    homeLibraryApply: 'Applica', homeLibrarySave: 'Salva attuale', homeLibraryRemove: 'Rimuovi',
-    homeTemplateSaved: 'Pratica a casa salvata in libreria', homeTemplateRemoved: 'Template rimosso dalla libreria',
-    homeTemplateApplied: 'Template applicato. Salva la sessione per conservare queste modifiche.', homeTemplatePrompt: 'Dai un nome a questa pratica riusabile',
-    homeTemplateRemoveConfirm: 'Rimuovere questo template dalla Home Practice Library? Rimarrà nelle sessioni in cui è già stato applicato.',
-    homeTemplateEmpty: 'Scrivi prima un suggerimento da salvare in libreria.',
-    homeTemplateLoginRequired: 'Accedi e resta online per salvare i template di pratica a casa.',
-    homeTemplateLoadError: 'Impossibile caricare i template di pratica a casa. Clienti e sessioni saranno comunque caricati.',
-    homeTemplateSaveError: 'Impossibile salvare questo template nel cloud. Riprova.',
-    homeTemplateRemoveError: 'Impossibile rimuovere questo template dal cloud. Riprova.',
     pdfReportBtn: '📄 Report Cliente PDF',
     pdfLockedBtn: '📄 Report Cliente PDF (Premium)',
     pdfPremiumBadge: 'Report Premium',
@@ -2316,7 +2298,7 @@ function renderHelpContent() {
     { title: 'Piano free e limiti', body: 'Nel piano free puoi avere fino a <strong>5 clienti nello spazio attivo</strong>, fino a <strong>7 schede cliente create</strong> e fino a <strong>7 sessioni per cliente</strong>, per un <strong>totale complessivo di 35 sessioni create</strong>. Spostare un cliente in <strong>Archivio</strong> libera uno slot nello spazio attivo, ma <strong>non restituisce quota free già creata</strong>. Anche cancellare una sessione o una scheda non ripristina la quota già consumata. <strong>Il piano premium è pensato per un uso continuativo del lavoro senza questi limiti.</strong>' },
     { title: 'Archivio e Cestino', body: 'La scheda <strong>Archivio</strong> serve a togliere clienti dallo spazio di lavoro attivo senza eliminarli. La scheda <strong>Cestino</strong> contiene invece gli elementi eliminati, con opzioni di ripristino o eliminazione definitiva.' },
     { title: 'Ricerca e Sessioni', body: '<strong>Cerca</strong> ti aiuta a trovare rapidamente nomi, note, etichette e obiettivi in tutto lo spazio di lavoro. La vista <strong>Sessioni</strong> raccoglie invece tutte le sessioni dei clienti in ordine di data, così puoi rivederle più velocemente e filtrare per allievo quando serve.' },
-    { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le <strong>note di lavoro</strong>, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Libreria pratica a casa</strong><br>Puoi salvare un suggerimento ricorrente come template riusabile. <strong>Applica</strong> copia il template selezionato nei campi della sessione corrente, <strong>Salva attuale</strong> salva come template il suggerimento che hai scritto, <strong>Rimuovi</strong> elimina il template selezionato dalla libreria.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
+    { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le <strong>note di lavoro</strong>, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Integrazione a casa</strong><br>Questa sezione registra la pratica a casa suggerita per quella specifica sessione, insieme alla frequenza e a eventuali note aggiuntive.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
     { title: 'Grafico andamento cliente', body: 'Nel profilo cliente compare un piccolo grafico che confronta nel tempo comfort, facilità di movimento, respiro e agency. Per vederlo bene servono almeno due sessioni con metriche compilate.' },
     { title: 'Backup ed esportazioni', body: '<strong>Export JSON</strong> è il backup completo dello spazio di lavoro ed è il formato consigliato per conservare tutti i dati. <strong>Export CSV</strong> è un riepilogo sintetico delle sessioni pensato per analisi rapide su foglio di calcolo. <strong>Report Cliente PDF</strong> è la scheda completa e stampabile del cliente, disponibile nel piano premium e generabile dal profilo cliente.' },
     { title: 'Dati, backup e uso', body: 'Ogni account accede ai dati del proprio spazio di lavoro. Durante il test è consigliato usare <strong>iniziali o codici cliente</strong> invece di dati identificativi completi quando possibile. I dati restano disponibili localmente e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
@@ -2325,7 +2307,7 @@ function renderHelpContent() {
     { title: 'Free plan and limits', body: 'The free plan allows up to <strong>5 clients in the active workspace</strong>, up to <strong>7 client cards created</strong>, and up to <strong>7 sessions per client</strong>, for a <strong>total of 35 created sessions</strong>. Moving a client to <strong>Archive</strong> frees an active workspace slot, but <strong>does not restore created free quota</strong>. Deleting a session or a client card also does not restore quota that has already been used. <strong>The premium plan is designed for ongoing professional use without these limits.</strong>' },
     { title: 'Archive & Trash', body: 'The <strong>Archive</strong> tab removes clients from the active workspace without deleting them. The <strong>Trash</strong> tab contains deleted items, with restore or permanent delete.' },
     { title: 'Search & Sessions', body: '<strong>Search</strong> helps you quickly find names, notes, tags, and goals across the whole workspace. The <strong>Sessions</strong> view gathers all client sessions in date order, making it easier to review work across clients and filter by client when needed.' },
-    { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace your <strong>working notes</strong>, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Practice Library</strong><br>You can save a recurring suggestion as a reusable template. <strong>Apply</strong> copies the selected template into the current session fields, <strong>Save current</strong> saves the current suggestion as a template, and <strong>Remove</strong> deletes the selected template from the library.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
+    { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace your <strong>working notes</strong>, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Integration</strong><br>This section records the home practice suggested for that specific session, together with the frequency and any additional notes.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
     { title: 'Client trend chart', body: 'A small chart in the client profile compares comfort, ease of movement, breath ease, and agency over time. You need at least two sessions with completed metrics to see it properly.' },
     { title: 'Backup & exports', body: '<strong>Export JSON</strong> is the full workspace backup and the recommended format for preserving all data. <strong>Export CSV</strong> is a synthetic session summary for quick spreadsheet analysis. <strong>Client Report PDF</strong> is the complete printable client summary, available on premium plan and generated from the client profile.' },
     { title: 'Data, backup & use', body: 'Each account only accesses its own workspace data. During testing, it is recommended to use <strong>initials or client codes</strong> rather than full identifying details when possible. Data remains available locally and, when cloud sync is active, can also sync online. Use <strong>Export JSON</strong> regularly to keep an independent local backup.' }
@@ -2497,7 +2479,7 @@ async function authSignOut() {
   ]); } catch(e) { console.warn('[signOut] server logout skipped:', e.message); }
   _clearTokens();
   currentUser = null;
-  appState = { clients: [], sessions: [], ui: { homeLibrary: [] } };
+  appState = { clients: [], sessions: [], ui: {} };
   resetUiResidualState();
   renderClients();
   updateHeaderUserBadge();
@@ -2638,51 +2620,15 @@ async function loadFromCloud() {
     const clients  = await _sbSelect('clients',  { user_id: uid });
     const sessions = await _sbSelect('sessions', { user_id: uid });
     if (Array.isArray(clients) && Array.isArray(sessions)) {
-      const currentHomeLibrary = Array.isArray(appState.ui?.homeLibrary) ? appState.ui.homeLibrary : readLocalHomeLibrary();
-      // Cloud remains the source of truth for clients/sessions only.
       appState.clients  = clients;
       appState.sessions = sessions;
       normalizeState();
-      appState.ui.homeLibrary = currentHomeLibrary;
       saveState();
       return clients.length > 0 || sessions.length > 0;
     }
     return false;
   } catch(e) {
     console.error('Load from cloud error:', e);
-    return false;
-  }
-}
-
-function mapHomePracticeTemplateFromCloud(row) {
-  return {
-    id: row.id,
-    name: row.name || '',
-    suggestion: row.suggestion || '',
-    frequency: row.frequency || '',
-    notes: row.notes || '',
-    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
-    updatedAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || new Date().toISOString()
-  };
-}
-
-async function loadHomePracticeTemplatesFromCloud() {
-  if (!currentUser || !isOnline) return false;
-  try {
-    const uid = currentUser.id;
-    const rows = await _sbFetch('/rest/v1/home_practice_templates?select=*&user_id=eq.' + encodeURIComponent(uid) + '&order=created_at.desc', {
-      headers: { 'Range': '0-9999' }
-    });
-    if (!Array.isArray(rows)) return false;
-    const cloudHomeLibrary = rows.map(mapHomePracticeTemplateFromCloud);
-    if (cloudHomeLibrary.length > 0) {
-      appState.ui.homeLibrary = cloudHomeLibrary;
-      saveState();
-    }
-    return true;
-  } catch(e) {
-    console.error('Load home practice templates error:', e);
-    showToast(x('homeTemplateLoadError'), 'error', 4200);
     return false;
   }
 }
@@ -2736,7 +2682,6 @@ const STRUCT_COLS = ['Standing','Sitting','Supine'];
 const LEGACY_STORAGE_KEY = 'fi_logbook_v1';
 const FREE_PLAN_LIMITS = { activeClients: 5, totalClients: 7, sessionsPerClient: 7, totalSessions: 35 };
 let appState = { clients: [], sessions: [], ui: {} };
-let sessionEditorUiState = { sessionKey: '', homeIntegrationOpen: false, selectedHomeTemplateId: '', scrollX: 0, scrollY: 0 };
 let currentClientId = null;
 let currentSessionId = null;
 let editingClientId = null;
@@ -2882,31 +2827,6 @@ function canCreateSessionForClient(clientId, editingSessionId = null) {
 }
 
 
-function readLocalHomeLibrary() {
-  try {
-    const raw = localStorage.getItem(getUserScopedStorageKey());
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed?.ui?.homeLibrary) ? parsed.ui.homeLibrary : [];
-  } catch(e) {
-    console.warn('[homeLibrary] Unable to read local templates:', e.message);
-    return [];
-  }
-}
-
-function mergeHomeLibraries(primary = [], secondary = []) {
-  const merged = [];
-  const seen = new Set();
-  [...primary, ...secondary].forEach(item => {
-    if (!item || typeof item !== 'object') return;
-    const id = item.id || uid();
-    if (seen.has(id)) return;
-    seen.add(id);
-    merged.push({ ...item, id });
-  });
-  return merged;
-}
-
 function loadState(options = {}) {
   const { allowLegacyMigration = true } = options;
   try {
@@ -2937,7 +2857,6 @@ function saveState() {
 function normalizeState() {
   let changed = false;
   if (!appState.ui || typeof appState.ui !== 'object') { appState.ui = {}; changed = true; }
-  if (!Array.isArray(appState.ui.homeLibrary)) { appState.ui.homeLibrary = []; changed = true; }
   if (!appState.ui.usage || typeof appState.ui.usage !== 'object') { appState.ui.usage = { totalClientsCreated: 0, totalSessionsCreated: 0, sessionsCreatedByClient: {} }; changed = true; }
   if (typeof appState.ui.usage.totalClientsCreated !== 'number') { appState.ui.usage.totalClientsCreated = 0; changed = true; }
   if (typeof appState.ui.usage.totalSessionsCreated !== 'number') { appState.ui.usage.totalSessionsCreated = 0; changed = true; }
@@ -3655,7 +3574,6 @@ function newSession() {
     isTrashed: false, trashedAt: null,
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
-  resetSessionEditorUiState(sessionDraft.id);
   renderSessionEditor();
   showView('session');
 }
@@ -3670,65 +3588,12 @@ function editSession(sessionId) {
   if (!sessionDraft.skeletalMapConnectionsFront) sessionDraft.skeletalMapConnectionsFront = [];
   if (!sessionDraft.skeletalMapConnectionsBack) sessionDraft.skeletalMapConnectionsBack = [];
   if (!sessionDraft.metrics) sessionDraft.metrics = { comfort: null, easeOfMovement: null, breathEase: null, agency: null, metricNotes: '' };
-  ensureSessionEditorUiStateForCurrentSession();
   renderSessionEditor();
   showView('session');
 }
 
-function getCurrentSessionEditorKey() {
-  return sessionDraft?.id || currentSessionId || '';
-}
-
-function createDefaultSessionEditorUiState(sessionKey = getCurrentSessionEditorKey()) {
-  return { sessionKey, homeIntegrationOpen: false, selectedHomeTemplateId: '', scrollX: 0, scrollY: 0 };
-}
-
-function resetSessionEditorUiState(sessionKey = getCurrentSessionEditorKey()) {
-  sessionEditorUiState = createDefaultSessionEditorUiState(sessionKey);
-}
-
-function ensureSessionEditorUiStateForCurrentSession() {
-  const sessionKey = getCurrentSessionEditorKey();
-  if (sessionEditorUiState.sessionKey !== sessionKey) {
-    resetSessionEditorUiState(sessionKey);
-  }
-  return sessionEditorUiState;
-}
-
-function captureSessionEditorUiState() {
-  const sessionKey = getCurrentSessionEditorKey();
-  if (sessionEditorUiState.sessionKey && sessionEditorUiState.sessionKey !== sessionKey) {
-    resetSessionEditorUiState(sessionKey);
-  }
-  const homeSection = document.getElementById('home-integration-section');
-  const homeSelect = document.getElementById('home-template-select');
-  sessionEditorUiState = {
-    sessionKey,
-    homeIntegrationOpen: !!homeSection?.classList.contains('open'),
-    selectedHomeTemplateId: homeSelect ? homeSelect.value : (sessionEditorUiState.selectedHomeTemplateId || ''),
-    scrollX: window.scrollX || window.pageXOffset || 0,
-    scrollY: window.scrollY || window.pageYOffset || 0
-  };
-  return { ...sessionEditorUiState };
-}
-
-function restoreSessionEditorScroll(uiState) {
-  if (!uiState) return;
-  requestAnimationFrame(() => {
-    window.scrollTo(uiState.scrollX || 0, uiState.scrollY || 0);
-  });
-}
-
-function renderSessionEditorPreservingUi(overrides = {}) {
-  const uiState = { ...captureSessionEditorUiState(), sessionKey: getCurrentSessionEditorKey(), ...overrides };
-  sessionEditorUiState = uiState;
-  renderSessionEditor();
-  restoreSessionEditorScroll(uiState);
-}
-
 function renderSessionEditor() {
   try {
-    ensureSessionEditorUiStateForCurrentSession();
     const c = appState.clients.find(x => x.id === (sessionDraft.clientId || currentClientId));
     const clientName = c ? c.name : '?';
     const isNew = !currentSessionId;
@@ -3900,13 +3765,13 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section ${sessionEditorUiState.homeIntegrationOpen ? 'open' : ''}" id="home-integration-section">
+      <div class="form-section" id="home-integration-section">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('homeIntegrationTitle')}</span>
           <span class="form-section-arrow">▼</span>
         </div>
         <div class="form-section-body">
-          ${buildHomeLibraryControls()}
+          <p class="field-help" style="margin:0 0 12px;color:var(--text2);font-size:13px;">${t('homeIntegrationHelper')}</p>
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('homeSuggestionLabel')}</label>
@@ -3952,9 +3817,6 @@ function renderSessionEditor() {
 function toggleSection(header) {
   const section = header.parentElement;
   section.classList.toggle('open');
-  if (section.id === 'home-integration-section') {
-    sessionEditorUiState.homeIntegrationOpen = section.classList.contains('open');
-  }
 }
 
 function cancelSession() {
@@ -3983,7 +3845,6 @@ function saveSession() {
       currentSessionId = sessionDraft.id;
       showToast(t('sessionSaved'), 'success');
     }
-    captureSessionEditorUiState();
     saveState();
     renderProfile();
     renderClients();
@@ -4376,111 +4237,6 @@ function loadTimelineSession(sessionId) {
 // ════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════
-
-function getHomeLibrary() {
-  if (!Array.isArray(appState.ui.homeLibrary)) appState.ui.homeLibrary = [];
-  return appState.ui.homeLibrary;
-}
-function buildHomeLibraryControls() {
-  const library = getHomeLibrary();
-  const selectedId = library.some(item => item.id === sessionEditorUiState.selectedHomeTemplateId) ? sessionEditorUiState.selectedHomeTemplateId : '';
-  const options = library.length
-    ? library.map(item => `<option value="${item.id}" ${item.id === selectedId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')
-    : '<option value="">—</option>';
-  return `<div style="margin-bottom:12px;">
-    <label class="label">${x('homeLibraryTitle')}</label>
-    <div class="library-row">
-      <select id="home-template-select" onchange="sessionEditorUiState.selectedHomeTemplateId=this.value"><option value="" ${selectedId ? '' : 'selected'}>${x('homeLibraryPlaceholder')}</option>${options}</select>
-      <button class="btn btn-secondary btn-sm" onclick="applyHomeTemplate(document.getElementById('home-template-select').value)">${x('homeLibraryApply')}</button>
-      <button class="btn btn-secondary btn-sm" onclick="saveCurrentHomeTemplate()">${x('homeLibrarySave')}</button>
-      <button class="btn btn-danger btn-sm" onclick="removeHomeTemplate(document.getElementById('home-template-select').value)">${x('homeLibraryRemove')}</button>
-    </div>
-  </div>`;
-}
-async function saveCurrentHomeTemplate() {
-  const suggestion = (sessionDraft.homeSuggestion || '').trim();
-  const frequency = (sessionDraft.homeFrequency || '').trim();
-  const notes = (sessionDraft.homeNotes || '').trim();
-  if (!suggestion) { showToast(x('homeTemplateEmpty'), 'error'); return; }
-  const name = prompt(x('homeTemplatePrompt'), suggestion.slice(0, 40));
-  if (!name || !name.trim()) return;
-
-  if (currentUser) {
-    if (!isOnline) { showToast(x('homeTemplateLoginRequired'), 'error'); return; }
-    try {
-      const rows = await _sbFetch('/rest/v1/home_practice_templates', {
-        method: 'POST',
-        body: JSON.stringify({
-          user_id: currentUser.id,
-          name: name.trim(),
-          suggestion,
-          frequency,
-          notes
-        }),
-        headers: { 'Prefer': 'return=representation' }
-      });
-      const inserted = Array.isArray(rows) ? rows[0] : rows;
-      if (!inserted || !inserted.id) throw new Error('Missing inserted template id');
-      getHomeLibrary().unshift(mapHomePracticeTemplateFromCloud(inserted));
-      sessionEditorUiState.selectedHomeTemplateId = inserted.id;
-      saveState();
-      renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: inserted.id });
-      showToast(x('homeTemplateSaved'), 'success');
-    } catch(e) {
-      console.error('Save home practice template error:', e);
-      showToast(x('homeTemplateSaveError'), 'error', 4200);
-    }
-    return;
-  }
-
-  const templateId = uid();
-  getHomeLibrary().unshift({ id: templateId, name: name.trim(), suggestion, frequency, notes, createdAt: new Date().toISOString() });
-  sessionEditorUiState.selectedHomeTemplateId = templateId;
-  saveState();
-  renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: templateId });
-  showToast(x('homeTemplateSaved'), 'success');
-}
-function applyHomeTemplate(templateId) {
-  if (!templateId) return;
-  const tpl = getHomeLibrary().find(item => item.id === templateId);
-  if (!tpl) return;
-  sessionDraft.homeSuggestion = tpl.suggestion || '';
-  sessionDraft.homeFrequency = tpl.frequency || '';
-  sessionDraft.homeNotes = tpl.notes || '';
-  sessionEditorUiState.selectedHomeTemplateId = templateId;
-  renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: templateId });
-  showToast(x('homeTemplateApplied'), 'success');
-}
-async function removeHomeTemplate(templateId) {
-  if (!templateId) return;
-  if (!confirm(x('homeTemplateRemoveConfirm'))) return;
-
-  if (currentUser) {
-    if (!isOnline) { showToast(x('homeTemplateRemoveError'), 'error'); return; }
-    try {
-      const deletedRows = await _sbFetch('/rest/v1/home_practice_templates?id=eq.' + encodeURIComponent(templateId) + '&user_id=eq.' + encodeURIComponent(currentUser.id), {
-        method: 'DELETE',
-        headers: { 'Prefer': 'return=representation' }
-      });
-      if (!Array.isArray(deletedRows) || deletedRows.length === 0) throw new Error('Template was not deleted');
-      appState.ui.homeLibrary = getHomeLibrary().filter(item => item.id !== templateId);
-      sessionEditorUiState.selectedHomeTemplateId = '';
-      saveState();
-      renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: '' });
-      showToast(x('homeTemplateRemoved'), 'success');
-    } catch(e) {
-      console.error('Remove home practice template error:', e);
-      showToast(x('homeTemplateRemoveError'), 'error', 4200);
-    }
-    return;
-  }
-
-  appState.ui.homeLibrary = getHomeLibrary().filter(item => item.id !== templateId);
-  sessionEditorUiState.selectedHomeTemplateId = '';
-  saveState();
-  renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: '' });
-  showToast(x('homeTemplateRemoved'), 'success');
-}
 
 function renderArchive() {
   const container = document.getElementById('archive-list');
@@ -5855,13 +5611,11 @@ function hideAuthScreen() {
 async function onSignedIn(user) {
   currentUser = user;
   resetUiResidualState();
-  const cachedHomeLibrary = readLocalHomeLibrary();
-  appState = { clients: [], sessions: [], ui: { homeLibrary: cachedHomeLibrary } };
+  appState = { clients: [], sessions: [], ui: {} };
   updateHeaderUserBadge();
   updateSyncIndicator('syncing');
   const loaded = await loadFromCloud();
   if (!loaded) loadState({ allowLegacyMigration: true });
-  await loadHomePracticeTemplatesFromCloud();
   showView('clients');
   hideAuthScreen();
   flushPendingCheckoutToast();
