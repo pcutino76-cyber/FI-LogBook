@@ -2018,7 +2018,8 @@ const EXTRA_STRINGS = {
     homeLibraryTitle: 'Home practice library', homeLibraryPlaceholder: 'Choose a saved suggestion…',
     homeLibraryApply: 'Apply', homeLibrarySave: 'Save current', homeLibraryRemove: 'Remove',
     homeTemplateSaved: 'Home practice saved to library', homeTemplateRemoved: 'Template removed from library',
-    homeTemplateApplied: 'Template applied to current session', homeTemplatePrompt: 'Name this reusable home practice',
+    homeTemplateApplied: 'Template applied. Save the session to keep these changes.', homeTemplatePrompt: 'Name this reusable home practice',
+    homeTemplateRemoveConfirm: 'Remove this template from your Home Practice Library? It will remain in sessions where it was already applied.',
     homeTemplateEmpty: 'Write a suggestion before saving it to the library.',
     homeTemplateLoginRequired: 'Sign in and go online to save home practice templates.',
     homeTemplateLoadError: 'Could not load home practice templates. Clients and sessions will still load.',
@@ -2047,7 +2048,8 @@ const EXTRA_STRINGS = {
     homeLibraryTitle: 'Libreria pratica a casa', homeLibraryPlaceholder: 'Scegli un suggerimento salvato…',
     homeLibraryApply: 'Applica', homeLibrarySave: 'Salva attuale', homeLibraryRemove: 'Rimuovi',
     homeTemplateSaved: 'Pratica a casa salvata in libreria', homeTemplateRemoved: 'Template rimosso dalla libreria',
-    homeTemplateApplied: 'Template applicato alla sessione corrente', homeTemplatePrompt: 'Dai un nome a questa pratica riusabile',
+    homeTemplateApplied: 'Template applicato. Salva la sessione per conservare queste modifiche.', homeTemplatePrompt: 'Dai un nome a questa pratica riusabile',
+    homeTemplateRemoveConfirm: 'Rimuovere questo template dalla Home Practice Library? Rimarrà nelle sessioni in cui è già stato applicato.',
     homeTemplateEmpty: 'Scrivi prima un suggerimento da salvare in libreria.',
     homeTemplateLoginRequired: 'Accedi e resta online per salvare i template di pratica a casa.',
     homeTemplateLoadError: 'Impossibile caricare i template di pratica a casa. Clienti e sessioni saranno comunque caricati.',
@@ -2734,6 +2736,7 @@ const STRUCT_COLS = ['Standing','Sitting','Supine'];
 const LEGACY_STORAGE_KEY = 'fi_logbook_v1';
 const FREE_PLAN_LIMITS = { activeClients: 5, totalClients: 7, sessionsPerClient: 7, totalSessions: 35 };
 let appState = { clients: [], sessions: [], ui: {} };
+let sessionEditorUiState = { sessionKey: '', homeIntegrationOpen: false, selectedHomeTemplateId: '', scrollX: 0, scrollY: 0 };
 let currentClientId = null;
 let currentSessionId = null;
 let editingClientId = null;
@@ -3652,6 +3655,7 @@ function newSession() {
     isTrashed: false, trashedAt: null,
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
+  resetSessionEditorUiState(sessionDraft.id);
   renderSessionEditor();
   showView('session');
 }
@@ -3666,12 +3670,65 @@ function editSession(sessionId) {
   if (!sessionDraft.skeletalMapConnectionsFront) sessionDraft.skeletalMapConnectionsFront = [];
   if (!sessionDraft.skeletalMapConnectionsBack) sessionDraft.skeletalMapConnectionsBack = [];
   if (!sessionDraft.metrics) sessionDraft.metrics = { comfort: null, easeOfMovement: null, breathEase: null, agency: null, metricNotes: '' };
+  ensureSessionEditorUiStateForCurrentSession();
   renderSessionEditor();
   showView('session');
 }
 
+function getCurrentSessionEditorKey() {
+  return sessionDraft?.id || currentSessionId || '';
+}
+
+function createDefaultSessionEditorUiState(sessionKey = getCurrentSessionEditorKey()) {
+  return { sessionKey, homeIntegrationOpen: false, selectedHomeTemplateId: '', scrollX: 0, scrollY: 0 };
+}
+
+function resetSessionEditorUiState(sessionKey = getCurrentSessionEditorKey()) {
+  sessionEditorUiState = createDefaultSessionEditorUiState(sessionKey);
+}
+
+function ensureSessionEditorUiStateForCurrentSession() {
+  const sessionKey = getCurrentSessionEditorKey();
+  if (sessionEditorUiState.sessionKey !== sessionKey) {
+    resetSessionEditorUiState(sessionKey);
+  }
+  return sessionEditorUiState;
+}
+
+function captureSessionEditorUiState() {
+  const sessionKey = getCurrentSessionEditorKey();
+  if (sessionEditorUiState.sessionKey && sessionEditorUiState.sessionKey !== sessionKey) {
+    resetSessionEditorUiState(sessionKey);
+  }
+  const homeSection = document.getElementById('home-integration-section');
+  const homeSelect = document.getElementById('home-template-select');
+  sessionEditorUiState = {
+    sessionKey,
+    homeIntegrationOpen: !!homeSection?.classList.contains('open'),
+    selectedHomeTemplateId: homeSelect ? homeSelect.value : (sessionEditorUiState.selectedHomeTemplateId || ''),
+    scrollX: window.scrollX || window.pageXOffset || 0,
+    scrollY: window.scrollY || window.pageYOffset || 0
+  };
+  return { ...sessionEditorUiState };
+}
+
+function restoreSessionEditorScroll(uiState) {
+  if (!uiState) return;
+  requestAnimationFrame(() => {
+    window.scrollTo(uiState.scrollX || 0, uiState.scrollY || 0);
+  });
+}
+
+function renderSessionEditorPreservingUi(overrides = {}) {
+  const uiState = { ...captureSessionEditorUiState(), sessionKey: getCurrentSessionEditorKey(), ...overrides };
+  sessionEditorUiState = uiState;
+  renderSessionEditor();
+  restoreSessionEditorScroll(uiState);
+}
+
 function renderSessionEditor() {
   try {
+    ensureSessionEditorUiStateForCurrentSession();
     const c = appState.clients.find(x => x.id === (sessionDraft.clientId || currentClientId));
     const clientName = c ? c.name : '?';
     const isNew = !currentSessionId;
@@ -3843,7 +3900,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section">
+      <div class="form-section ${sessionEditorUiState.homeIntegrationOpen ? 'open' : ''}" id="home-integration-section">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('homeIntegrationTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3893,7 +3950,11 @@ function renderSessionEditor() {
 }
 
 function toggleSection(header) {
-  header.parentElement.classList.toggle('open');
+  const section = header.parentElement;
+  section.classList.toggle('open');
+  if (section.id === 'home-integration-section') {
+    sessionEditorUiState.homeIntegrationOpen = section.classList.contains('open');
+  }
 }
 
 function cancelSession() {
@@ -3922,6 +3983,7 @@ function saveSession() {
       currentSessionId = sessionDraft.id;
       showToast(t('sessionSaved'), 'success');
     }
+    captureSessionEditorUiState();
     saveState();
     renderProfile();
     renderClients();
@@ -4321,13 +4383,14 @@ function getHomeLibrary() {
 }
 function buildHomeLibraryControls() {
   const library = getHomeLibrary();
+  const selectedId = library.some(item => item.id === sessionEditorUiState.selectedHomeTemplateId) ? sessionEditorUiState.selectedHomeTemplateId : '';
   const options = library.length
-    ? library.map(item => `<option value="${item.id}">${esc(item.name)}</option>`).join('')
+    ? library.map(item => `<option value="${item.id}" ${item.id === selectedId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')
     : '<option value="">—</option>';
   return `<div style="margin-bottom:12px;">
     <label class="label">${x('homeLibraryTitle')}</label>
     <div class="library-row">
-      <select id="home-template-select"><option value="">${x('homeLibraryPlaceholder')}</option>${options}</select>
+      <select id="home-template-select" onchange="sessionEditorUiState.selectedHomeTemplateId=this.value"><option value="" ${selectedId ? '' : 'selected'}>${x('homeLibraryPlaceholder')}</option>${options}</select>
       <button class="btn btn-secondary btn-sm" onclick="applyHomeTemplate(document.getElementById('home-template-select').value)">${x('homeLibraryApply')}</button>
       <button class="btn btn-secondary btn-sm" onclick="saveCurrentHomeTemplate()">${x('homeLibrarySave')}</button>
       <button class="btn btn-danger btn-sm" onclick="removeHomeTemplate(document.getElementById('home-template-select').value)">${x('homeLibraryRemove')}</button>
@@ -4359,8 +4422,9 @@ async function saveCurrentHomeTemplate() {
       const inserted = Array.isArray(rows) ? rows[0] : rows;
       if (!inserted || !inserted.id) throw new Error('Missing inserted template id');
       getHomeLibrary().unshift(mapHomePracticeTemplateFromCloud(inserted));
+      sessionEditorUiState.selectedHomeTemplateId = inserted.id;
       saveState();
-      renderSessionEditor();
+      renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: inserted.id });
       showToast(x('homeTemplateSaved'), 'success');
     } catch(e) {
       console.error('Save home practice template error:', e);
@@ -4369,9 +4433,11 @@ async function saveCurrentHomeTemplate() {
     return;
   }
 
-  getHomeLibrary().unshift({ id: uid(), name: name.trim(), suggestion, frequency, notes, createdAt: new Date().toISOString() });
+  const templateId = uid();
+  getHomeLibrary().unshift({ id: templateId, name: name.trim(), suggestion, frequency, notes, createdAt: new Date().toISOString() });
+  sessionEditorUiState.selectedHomeTemplateId = templateId;
   saveState();
-  renderSessionEditor();
+  renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: templateId });
   showToast(x('homeTemplateSaved'), 'success');
 }
 function applyHomeTemplate(templateId) {
@@ -4381,11 +4447,13 @@ function applyHomeTemplate(templateId) {
   sessionDraft.homeSuggestion = tpl.suggestion || '';
   sessionDraft.homeFrequency = tpl.frequency || '';
   sessionDraft.homeNotes = tpl.notes || '';
-  renderSessionEditor();
+  sessionEditorUiState.selectedHomeTemplateId = templateId;
+  renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: templateId });
   showToast(x('homeTemplateApplied'), 'success');
 }
 async function removeHomeTemplate(templateId) {
   if (!templateId) return;
+  if (!confirm(x('homeTemplateRemoveConfirm'))) return;
 
   if (currentUser) {
     if (!isOnline) { showToast(x('homeTemplateRemoveError'), 'error'); return; }
@@ -4396,8 +4464,9 @@ async function removeHomeTemplate(templateId) {
       });
       if (!Array.isArray(deletedRows) || deletedRows.length === 0) throw new Error('Template was not deleted');
       appState.ui.homeLibrary = getHomeLibrary().filter(item => item.id !== templateId);
+      sessionEditorUiState.selectedHomeTemplateId = '';
       saveState();
-      renderSessionEditor();
+      renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: '' });
       showToast(x('homeTemplateRemoved'), 'success');
     } catch(e) {
       console.error('Remove home practice template error:', e);
@@ -4407,8 +4476,9 @@ async function removeHomeTemplate(templateId) {
   }
 
   appState.ui.homeLibrary = getHomeLibrary().filter(item => item.id !== templateId);
+  sessionEditorUiState.selectedHomeTemplateId = '';
   saveState();
-  renderSessionEditor();
+  renderSessionEditorPreservingUi({ homeIntegrationOpen: true, selectedHomeTemplateId: '' });
   showToast(x('homeTemplateRemoved'), 'success');
 }
 
