@@ -4796,9 +4796,10 @@ function buildClientReportPayload(clientId) {
     outcomes: s.outcomesImmediate || '',
     followUp: s.followUpNextTime || '',
     ahaMoment: s.ahaMoment || '',
-    consentObtained: s.consentObtained || '',
+    consentObtained: typeof s.consentObtained === 'boolean' ? s.consentObtained : '',
     home: s.homeSuggestion || '',
     homeFrequency: s.homeFrequency || '',
+    homeNotes: s.homeNotes || '',
     metricNotes: s.metrics?.metricNotes || '',
     metrics: {
       comfort: s.metrics?.comfort,
@@ -4832,6 +4833,13 @@ function buildClientReportPayload(clientId) {
   };
 }
 
+function localizedConsentValue(value) {
+  const rs = getReportPdfStrings();
+  if (value === true) return rs.booleanYes;
+  if (value === false) return rs.booleanNo;
+  return value;
+}
+
 function reportField(label, value) {
   const hasValue = value != null && String(value).trim() !== '';
   return `<div class="rf"><div class="rl">${label}</div><div class="rv${hasValue ? '' : ' is-empty'}">${hasValue ? esc(value) : esc(t('reportEmptyPlaceholder'))}</div></div>`;
@@ -4847,7 +4855,7 @@ const REPORT_PDF_STRINGS = {
     reportTitle: 'Client Report',
     generatedOn: 'Generated on',
     status: 'Status',
-    tag: 'Tag',
+    tag: 'Tags',
     clientOverview: 'Client overview',
     baselineSnapshot: 'Baseline snapshot',
     relevantGeneralNotes: 'Relevant general notes',
@@ -4882,9 +4890,12 @@ const REPORT_PDF_STRINGS = {
     verbalConsent: 'Verbal consent obtained',
     homePractice: 'Home practice',
     suggestedFrequency: 'Suggested frequency',
+    homePracticeNotes: 'Home practice notes',
     metricNotes: 'Metric notes',
     footer: 'Confidential professional use',
-    partialMetricsNote: 'Averages and changes are calculated using the values actually provided for each metric.'
+    partialMetricsNote: 'Averages and changes are calculated using the values actually provided for each metric.',
+    booleanYes: 'Yes',
+    booleanNo: 'No'
   },
   it: {
     reportTitle: 'Report Cliente',
@@ -4925,9 +4936,12 @@ const REPORT_PDF_STRINGS = {
     verbalConsent: 'Consenso verbale ottenuto',
     homePractice: 'Pratica a casa',
     suggestedFrequency: 'Frequenza suggerita',
+    homePracticeNotes: 'Note sulla pratica a casa',
     metricNotes: 'Note metriche',
     footer: 'Uso professionale riservato',
-    partialMetricsNote: 'Le medie e le variazioni sono calcolate sui valori effettivamente compilati per ciascuna metrica.'
+    partialMetricsNote: 'Le medie e le variazioni sono calcolate sui valori effettivamente compilati per ciascuna metrica.',
+    booleanYes: 'Sì',
+    booleanNo: 'No'
   }
 };
 function getReportPdfStrings() {
@@ -5037,9 +5051,10 @@ function buildClientReportHtml(payload) {
       ${reportField(rs.mainOutcomes, item.outcomes)}
       ${reportField(rs.followUpNextTime, item.followUp)}
       ${reportField(rs.ahaMoment, item.ahaMoment)}
-      ${reportField(rs.verbalConsent, item.consentObtained)}
+      ${reportField(rs.verbalConsent, localizedConsentValue(item.consentObtained))}
       ${reportField(rs.homePractice, item.home)}
       ${reportField(rs.suggestedFrequency, item.homeFrequency)}
+      ${String(item.homeNotes || '').trim() ? reportField(rs.homePracticeNotes, item.homeNotes) : ''}
       ${reportField(rs.metricNotes, item.metricNotes)}
     </section>
   `).join('');
