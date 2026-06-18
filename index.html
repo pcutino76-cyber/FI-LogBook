@@ -1681,6 +1681,8 @@ const STRINGS = {
     searchClientPlaceholder: 'Search client or tag…', allClientsOption: 'All clients',
     noSessionsFound: 'No sessions found', sessionsAppear: 'Sessions appear here once you create them from a client profile.',
     openBtn: 'Open →',
+    unsavedSessionChangesConfirm: 'You have unsaved session changes. Discard them and continue?',
+    historicalPreviewClosed: 'Historical preview closed. Repeat the action to edit the current session.',
     // Trash
     trashTitle: 'Trash', trashSubtitle: 'Deleted items can be restored or removed permanently',
     noTrashedClients: 'No trashed clients.', noTrashedSessions: 'No trashed sessions.',
@@ -1879,6 +1881,8 @@ const STRINGS = {
     searchClientPlaceholder: 'Cerca allievo o etichetta…', allClientsOption: 'Tutti gli allievi',
     noSessionsFound: 'Nessuna sessione trovata', sessionsAppear: 'Le sessioni appaiono qui una volta create dal profilo di un allievo.',
     openBtn: 'Apri →',
+    unsavedSessionChangesConfirm: 'Hai modifiche non salvate nella sessione. Vuoi scartarle e continuare?',
+    historicalPreviewClosed: 'Anteprima storica chiusa. Ripeti l’azione per modificare la sessione corrente.',
     trashTitle: 'Cestino', trashSubtitle: 'Gli elementi eliminati possono essere ripristinati o rimossi definitivamente',
     noTrashedClients: 'Nessun allievo nel cestino.', noTrashedSessions: 'Nessuna sessione nel cestino.',
     restoreBtn: '↩ Ripristina', deleteForeverBtn: '✕ Elimina Definitivamente',
@@ -2473,6 +2477,10 @@ async function authGetUser() {
 }
 
 async function authSignOut() {
+  if (!confirmDiscardUnsavedSessionChanges()) return;
+  endSkeletalPreview({ restoreCurrent: false });
+  const signingOutUserId = currentUser?.id;
+  clearSavedNavigationContext(signingOutUserId);
   try { await Promise.race([
     _sbFetch('/auth/v1/logout', { method: 'POST' }),
     new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 3000))
@@ -2692,6 +2700,12 @@ let connectFirstMarkerId = null;
 let themeMode = 'auto';
 let currentPalette = 'warm';
 let sessionDraft = {};
+let sessionDraftBaseline = null;
+let sessionDraftPotentiallyDirty = false;
+let sessionDraftRequiresInitialSave = false;
+let pendingRestoreOpenSectionIds = null;
+let skeletalPreviewState = null;
+let skeletalPreviewToken = 0;
 let newClientHighlightId = null;
 let newClientHighlightTimeout = null;
 
@@ -2827,6 +2841,230 @@ function canCreateSessionForClient(clientId, editingSessionId = null) {
 }
 
 
+const NAV_CONTEXT_VERSION = 1;
+const RESTORABLE_GENERIC_VIEWS = new Set(['clients','all-sessions','archive','trash','backup','settings','search','help']);
+
+function getNavContextStorageKey(userId = currentUser?.id) {
+  return userId ? `fi_logbook_nav_v1_${userId}` : null;
+}
+function sanitizeOpenSectionIds(ids) {
+  if (!Array.isArray(ids)) return null;
+  return [...new Set(ids.filter(id => typeof id === 'string' && /^[a-z0-9-]+$/.test(id)))];
+}
+function getCurrentOpenSectionIds() {
+  return Array.from(document.querySelectorAll('#session-editor-content .form-section.open[data-section-id]'))
+    .map(section => section.dataset.sectionId)
+    .filter(Boolean);
+}
+function readSavedNavigationContext() {
+  try {
+    const key = getNavContextStorageKey();
+    if (!key || !currentUser?.id) return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== NAV_CONTEXT_VERSION || parsed.userId !== currentUser.id) return null;
+    if (!RESTORABLE_GENERIC_VIEWS.has(parsed.view) && parsed.view !== 'profile' && parsed.view !== 'session') return null;
+    return {
+      version: NAV_CONTEXT_VERSION,
+      userId: currentUser.id,
+      view: parsed.view,
+      clientId: typeof parsed.clientId === 'string' ? parsed.clientId : null,
+      sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : null,
+      openSectionIds: Array.isArray(parsed.openSectionIds) ? sanitizeOpenSectionIds(parsed.openSectionIds) : null
+    };
+  } catch(e) {
+    console.warn('[navContext] read skipped:', e.message);
+    return null;
+  }
+}
+function writeSavedNavigationContext(ctx = {}) {
+  try {
+    const key = getNavContextStorageKey();
+    if (!key || !currentUser?.id) return;
+    const view = ctx.view;
+    if (!RESTORABLE_GENERIC_VIEWS.has(view) && view !== 'profile' && view !== 'session') return;
+    const payload = {
+      version: NAV_CONTEXT_VERSION,
+      userId: currentUser.id,
+      view,
+      clientId: typeof ctx.clientId === 'string' ? ctx.clientId : null,
+      sessionId: typeof ctx.sessionId === 'string' ? ctx.sessionId : null,
+      openSectionIds: Array.isArray(ctx.openSectionIds) ? sanitizeOpenSectionIds(ctx.openSectionIds) : null
+    };
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch(e) {
+    console.warn('[navContext] write skipped:', e.message);
+  }
+}
+function clearSavedNavigationContext(userId = currentUser?.id) {
+  try {
+    const key = getNavContextStorageKey(userId);
+    if (key) localStorage.removeItem(key);
+  } catch(e) {
+    console.warn('[navContext] clear skipped:', e.message);
+  }
+}
+function persistGenericNavigationContext(view) {
+  if (RESTORABLE_GENERIC_VIEWS.has(view)) writeSavedNavigationContext({ view, clientId: null, sessionId: null, openSectionIds: [] });
+}
+function persistClientProfileContext(clientId = currentClientId) {
+  const client = appState.clients.find(c => c.id === clientId && !c.isTrashed);
+  if (!client) { persistGenericNavigationContext('clients'); return false; }
+  writeSavedNavigationContext({ view: 'profile', clientId: client.id, sessionId: null, openSectionIds: [] });
+  return true;
+}
+function persistSavedSessionContext(sessionId = currentSessionId) {
+  const session = appState.sessions.find(s => s.id === sessionId && !s.isTrashed);
+  if (!session) return persistClientProfileContext(currentClientId || sessionDraft.clientId);
+  const client = appState.clients.find(c => c.id === session.clientId && !c.isTrashed);
+  if (!client) { persistGenericNavigationContext('clients'); return false; }
+  writeSavedNavigationContext({ view: 'session', clientId: client.id, sessionId: session.id, openSectionIds: getCurrentOpenSectionIds() });
+  return true;
+}
+function findRestorableClient(clientId) {
+  return appState.clients.find(c => c.id === clientId && !c.isTrashed) || null;
+}
+function findRestorableSession(sessionId) {
+  const session = appState.sessions.find(s => s.id === sessionId && !s.isTrashed) || null;
+  if (!session) return { session: null, client: null };
+  const client = findRestorableClient(session.clientId);
+  return { session, client };
+}
+function restoreSavedNavigationContext() {
+  const ctx = readSavedNavigationContext();
+  if (!ctx) return false;
+  try {
+    if (RESTORABLE_GENERIC_VIEWS.has(ctx.view)) {
+      showView(ctx.view, { skipUnsavedGuard: true, skipContextWrite: true });
+      return true;
+    }
+    if (ctx.view === 'profile') {
+      const client = findRestorableClient(ctx.clientId);
+      if (!client) return false;
+      currentClientId = client.id;
+      currentSessionId = null;
+      clearSessionDraftBaseline();
+      renderProfile();
+      showView('profile', { skipUnsavedGuard: true, skipContextWrite: true });
+      writeSavedNavigationContext({ view: 'profile', clientId: client.id, sessionId: null, openSectionIds: [] });
+      return true;
+    }
+    if (ctx.view === 'session') {
+      const { session, client } = findRestorableSession(ctx.sessionId);
+      if (session && client) {
+        pendingRestoreOpenSectionIds = Array.isArray(ctx.openSectionIds) ? sanitizeOpenSectionIds(ctx.openSectionIds) : null;
+        currentClientId = session.clientId;
+        editSession(session.id, { skipUnsavedGuard: true, skipContextWrite: true, restoreOpenSections: pendingRestoreOpenSectionIds });
+        writeSavedNavigationContext({ view: 'session', clientId: session.clientId, sessionId: session.id, openSectionIds: pendingRestoreOpenSectionIds });
+        pendingRestoreOpenSectionIds = null;
+        return true;
+      }
+      const fallbackClient = findRestorableClient(ctx.clientId);
+      if (fallbackClient) {
+        currentClientId = fallbackClient.id;
+        currentSessionId = null;
+        clearSessionDraftBaseline();
+        renderProfile();
+        showView('profile', { skipUnsavedGuard: true, skipContextWrite: true });
+        writeSavedNavigationContext({ view: 'profile', clientId: fallbackClient.id, sessionId: null, openSectionIds: [] });
+        return true;
+      }
+    }
+    return false;
+  } finally {
+    pendingRestoreOpenSectionIds = null;
+  }
+}
+function normalizeSessionForDirtyCompare(session) {
+  const clone = JSON.parse(JSON.stringify(session || {}));
+  delete clone.updatedAt;
+  delete clone.user_id;
+  if (!Array.isArray(clone.sessionTags)) clone.sessionTags = [];
+  if (!clone.structuralObservationGrid || typeof clone.structuralObservationGrid !== 'object') clone.structuralObservationGrid = {};
+  if (!clone.metrics || typeof clone.metrics !== 'object') clone.metrics = {};
+  clone.metrics = {
+    comfort: clone.metrics.comfort ?? null,
+    easeOfMovement: clone.metrics.easeOfMovement ?? null,
+    breathEase: clone.metrics.breathEase ?? null,
+    agency: clone.metrics.agency ?? null,
+    metricNotes: clone.metrics.metricNotes || ''
+  };
+  if (!Array.isArray(clone.skeletalMapMarkersFront)) clone.skeletalMapMarkersFront = [];
+  if (!Array.isArray(clone.skeletalMapMarkersBack)) clone.skeletalMapMarkersBack = [];
+  if (!Array.isArray(clone.skeletalMapConnectionsFront)) clone.skeletalMapConnectionsFront = [];
+  if (!Array.isArray(clone.skeletalMapConnectionsBack)) clone.skeletalMapConnectionsBack = [];
+  return clone;
+}
+function getCurrentDraftIdentity() {
+  return sessionDraft?.id || currentSessionId || null;
+}
+function cloneArrayForPreview(value) {
+  return JSON.parse(JSON.stringify(Array.isArray(value) ? value : []));
+}
+function getSessionDraftForDirtyCompare() {
+  const draft = JSON.parse(JSON.stringify(sessionDraft || {}));
+  if (skeletalPreviewState && skeletalPreviewState.draftId === getCurrentDraftIdentity()) {
+    draft.skeletalMapMarkersFront = cloneArrayForPreview(skeletalPreviewState.originalFront);
+    draft.skeletalMapMarkersBack = cloneArrayForPreview(skeletalPreviewState.originalBack);
+    draft.skeletalMapConnectionsFront = cloneArrayForPreview(skeletalPreviewState.originalConnectionsFront);
+    draft.skeletalMapConnectionsBack = cloneArrayForPreview(skeletalPreviewState.originalConnectionsBack);
+  }
+  return draft;
+}
+function getNormalizedSessionDraftSnapshot() {
+  return JSON.stringify(normalizeSessionForDirtyCompare(getSessionDraftForDirtyCompare()));
+}
+function captureSessionDraftBaseline(options = {}) {
+  sessionDraftBaseline = getNormalizedSessionDraftSnapshot();
+  sessionDraftPotentiallyDirty = !!options.potentiallyDirty;
+  sessionDraftRequiresInitialSave = !!options.requiresInitialSave;
+}
+function clearSessionDraftBaseline() {
+  sessionDraftBaseline = null;
+  sessionDraftPotentiallyDirty = false;
+  sessionDraftRequiresInitialSave = false;
+}
+function markSessionDraftDirty(options = {}) {
+  if (options.potentiallyDirty && document.getElementById('view-session')?.classList.contains('active')) {
+    sessionDraftPotentiallyDirty = true;
+  }
+}
+function hasUnsavedSessionChanges() {
+  if (!document.getElementById('view-session')?.classList.contains('active')) return false;
+  if (!sessionDraft || !sessionDraft.clientId || sessionDraftBaseline === null) return false;
+  if (sessionDraftRequiresInitialSave) return true;
+  if (sessionDraftPotentiallyDirty) return true;
+  return getNormalizedSessionDraftSnapshot() !== sessionDraftBaseline;
+}
+function confirmDiscardUnsavedSessionChanges() {
+  if (!hasUnsavedSessionChanges()) return true;
+  const ok = window.confirm(t('unsavedSessionChangesConfirm'));
+  if (ok) {
+    endSkeletalPreview({ restoreCurrent: false });
+    clearSessionDraftBaseline();
+  }
+  return ok;
+}
+function applyOpenSectionIds(openSectionIds) {
+  const ids = sanitizeOpenSectionIds(openSectionIds);
+  if (ids === null) return;
+  const wanted = new Set(ids);
+  document.querySelectorAll('#session-editor-content .form-section[data-section-id]').forEach(section => {
+    section.classList.toggle('open', wanted.has(section.dataset.sectionId));
+  });
+}
+function persistCurrentSessionOpenSections() {
+  if (currentSessionId) persistSavedSessionContext(currentSessionId);
+}
+function getSavedOpenSectionIdsForCurrentSession() {
+  if (!currentSessionId) return null;
+  const ctx = readSavedNavigationContext();
+  if (!ctx || ctx.view !== 'session' || ctx.sessionId !== currentSessionId) return null;
+  return ctx.openSectionIds;
+}
+
+
 function loadState(options = {}) {
   const { allowLegacyMigration = true } = options;
   try {
@@ -2917,6 +3155,7 @@ function renderSessionEditorEmptyState() {
 }
 
 function resetUiResidualState() {
+  endSkeletalPreview({ restoreCurrent: false });
   currentClientId = null;
   currentSessionId = null;
   editingClientId = null;
@@ -2924,6 +3163,7 @@ function resetUiResidualState() {
   connectModeView = null;
   connectFirstMarkerId = null;
   sessionDraft = {};
+  clearSessionDraftBaseline();
   skelHistory = { front: [], back: [] };
   skelFuture = { front: [], back: [] };
   closeMobileMoreMenu();
@@ -2975,7 +3215,11 @@ function syncNavState(name) {
     if (moreBtn) moreBtn.classList.add('active');
   }
 }
-function showView(name) {
+function showView(name, options = {}) {
+  const { skipUnsavedGuard = false, skipContextWrite = false } = options;
+  const activeView = document.querySelector('.view.active')?.id.replace('view-', '');
+  if (!skipUnsavedGuard && activeView === 'session' && name !== 'session' && !confirmDiscardUnsavedSessionChanges()) return false;
+  if (activeView === 'session' && name !== 'session') endSkeletalPreview({ restoreCurrent: false });
   closeMobileMoreMenu();
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('view-' + name);
@@ -2991,6 +3235,8 @@ function showView(name) {
     renderGlobalSearch();
     setTimeout(() => { const el = document.getElementById('global-search-input'); if(el) el.focus(); }, 80);
   }
+  if (!skipContextWrite && RESTORABLE_GENERIC_VIEWS.has(name)) persistGenericNavigationContext(name);
+  return true;
 }
 document.addEventListener('click', (event) => {
   const wrap = document.getElementById('mobile-more-wrap');
@@ -3147,6 +3393,7 @@ function renderPlanSummary() {
     ${upgrade}`;
 }
 function updateClientStatus(clientId, status) {
+  if (currentClientId === clientId && !confirmDiscardUnsavedSessionChanges()) return;
   const idx = appState.clients.findIndex(c => c.id === clientId);
   if (idx === -1) return;
   if (status !== 'archived' && !canActivateClient(clientId)) {
@@ -3234,10 +3481,19 @@ function lastSessionDate(clientId) {
   return sessions.length ? sessions[0].date : null;
 }
 
-function openClient(clientId) {
+function openClient(clientId, options = {}) {
+  const { skipUnsavedGuard = false, skipContextWrite = false } = options;
+  if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
+  endSkeletalPreview({ restoreCurrent: false });
+  const client = appState.clients.find(c => c.id === clientId && !c.isTrashed);
+  if (!client) { persistGenericNavigationContext('clients'); return false; }
   currentClientId = clientId;
+  currentSessionId = null;
+  clearSessionDraftBaseline();
   renderProfile();
-  showView('profile');
+  showView('profile', { skipUnsavedGuard: true, skipContextWrite: true });
+  if (!skipContextWrite) persistClientProfileContext(clientId);
+  return true;
 }
 
 // ════════════════════════════════════════════════════════
@@ -3326,7 +3582,7 @@ function saveClient() {
     }
     saveState();
     closeModal('modal-client');
-    if (!editingClientId) showView('clients');
+    if (!editingClientId) showView('clients', { skipUnsavedGuard: true });
     renderClients();
     renderArchive();
     if (currentClientId === editingClientId) renderProfile();
@@ -3336,6 +3592,7 @@ function saveClient() {
 }
 
 function trashClient(clientId) {
+  if (currentClientId === clientId && !confirmDiscardUnsavedSessionChanges()) return;
   try {
     const idx = appState.clients.findIndex(c => c.id === clientId);
     if (idx !== -1) {
@@ -3347,7 +3604,8 @@ function trashClient(clientId) {
       renderArchive();
       if (currentClientId === clientId) {
         currentClientId = null;
-        showView('clients');
+        persistGenericNavigationContext('clients');
+        showView('clients', { skipUnsavedGuard: true });
       }
     }
   } catch(e) {
@@ -3516,6 +3774,9 @@ function renderProfile() {
 }
 
 function deleteSession(sessionId) {
+  const deletingCurrentSession = currentSessionId === sessionId;
+  if (deletingCurrentSession && !confirmDiscardUnsavedSessionChanges()) return;
+  if (deletingCurrentSession) endSkeletalPreview({ restoreCurrent: false });
   try {
     const idx = appState.sessions.findIndex(s => s.id === sessionId);
     if (idx === -1) { showToast(currentLang==='it'?'Sessione non trovata':'Session not found', 'error'); return; }
@@ -3524,18 +3785,22 @@ function deleteSession(sessionId) {
     saveState();
     renderProfile();
     renderClients();
+    if (currentSessionId === sessionId) { currentSessionId = null; clearSessionDraftBaseline(); persistClientProfileContext(appState.sessions[idx]?.clientId || currentClientId); }
     showToast(t('sessionTrashed'), 'info', 4000);
   } catch(err) {
     showToast('Delete error: ' + err.message, 'error');
   }
 }
 
-function duplicateSession(sessionId) {
-  const src = appState.sessions.find(s => s.id === sessionId);
-  if (!src) return;
+function duplicateSession(sessionId, options = {}) {
+  const { skipUnsavedGuard = false } = options;
+  if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
+  endSkeletalPreview({ restoreCurrent: false });
+  const src = appState.sessions.find(s => s.id === sessionId && !s.isTrashed);
+  if (!src) return false;
   if (!canCreateSessionForClient(src.clientId)) {
     showToast(x('freeSessionLimitReached'), 'error');
-    return;
+    return false;
   }
   const copy = JSON.parse(JSON.stringify(src));
   const now = new Date().toISOString();
@@ -3545,16 +3810,21 @@ function duplicateSession(sessionId) {
   copy.updatedAt = now;
   copy.isTrashed = false;
   copy.trashedAt = null;
+  currentClientId = src.clientId;
   currentSessionId = null;
   sessionDraft = JSON.parse(JSON.stringify(copy));
+  captureSessionDraftBaseline({ requiresInitialSave: true });
+  persistClientProfileContext(src.clientId);
   renderSessionEditor();
-  showView('session');
+  showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
   showToast(x('duplicateCreated'), 'success');
+  return true;
 }
 
 
 function newSession() {
   if (!currentClientId) return;
+  endSkeletalPreview({ restoreCurrent: false });
   if (!canCreateSessionForClient(currentClientId)) {
     showToast(x('freeSessionLimitReached'), 'error');
     return;
@@ -3574,13 +3844,21 @@ function newSession() {
     isTrashed: false, trashedAt: null,
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
+  captureSessionDraftBaseline();
+  persistClientProfileContext(currentClientId);
   renderSessionEditor();
-  showView('session');
+  showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
 }
 
-function editSession(sessionId) {
-  const s = appState.sessions.find(x => x.id === sessionId);
-  if (!s) return;
+function editSession(sessionId, options = {}) {
+  const { skipUnsavedGuard = false, skipContextWrite = false, restoreOpenSections = null } = options;
+  if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
+  endSkeletalPreview({ restoreCurrent: false });
+  const s = appState.sessions.find(x => x.id === sessionId && !x.isTrashed);
+  if (!s) return false;
+  const client = appState.clients.find(c => c.id === s.clientId && !c.isTrashed);
+  if (!client) return false;
+  currentClientId = s.clientId;
   currentSessionId = sessionId;
   sessionDraft = JSON.parse(JSON.stringify(s));
   if (!sessionDraft.skeletalMapMarkersFront) sessionDraft.skeletalMapMarkersFront = [];
@@ -3588,8 +3866,12 @@ function editSession(sessionId) {
   if (!sessionDraft.skeletalMapConnectionsFront) sessionDraft.skeletalMapConnectionsFront = [];
   if (!sessionDraft.skeletalMapConnectionsBack) sessionDraft.skeletalMapConnectionsBack = [];
   if (!sessionDraft.metrics) sessionDraft.metrics = { comfort: null, easeOfMovement: null, breathEase: null, agency: null, metricNotes: '' };
+  captureSessionDraftBaseline();
   renderSessionEditor();
-  showView('session');
+  applyOpenSectionIds(restoreOpenSections ?? pendingRestoreOpenSectionIds ?? null);
+  showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  if (!skipContextWrite) persistSavedSessionContext(sessionId);
+  return true;
 }
 
 function renderSessionEditor() {
@@ -3628,7 +3910,7 @@ function renderSessionEditor() {
             oninput="sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;">
         </div>
         <span class="slider-val" id="sv-${f.key}">${displayVal}</span>
-        <button type="button" class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;" title="Clear">✕</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="markSessionDraftDirty();sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;" title="Clear">✕</button>
       </div>`;
     }).join('');
 
@@ -3648,7 +3930,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section open">
+      <div class="form-section open" data-section-id="session-info">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('sessionInfo')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3679,7 +3961,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section open">
+      <div class="form-section open" data-section-id="student-request">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('studentRequestTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3689,7 +3971,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section">
+      <div class="form-section" data-section-id="structural-observation">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('structuralObsTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3705,7 +3987,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section">
+      <div class="form-section" data-section-id="functional-inquiry">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('functionalInquiryTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3728,7 +4010,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section">
+      <div class="form-section" data-section-id="outcomes">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('outcomesTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3751,7 +4033,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section">
+      <div class="form-section" data-section-id="metrics">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('metricsTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3765,7 +4047,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section" id="home-integration-section">
+      <div class="form-section" id="home-integration-section" data-section-id="home-integration">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('homeIntegrationTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3787,7 +4069,7 @@ function renderSessionEditor() {
         </div>
       </div>
 
-      <div class="form-section open" id="skeletal-section">
+      <div class="form-section open" id="skeletal-section" data-section-id="skeletal-map">
         <div class="form-section-header" onclick="toggleSection(this)">
           <span class="form-section-title">${t('skeletalMapTitle')}</span>
           <span class="form-section-arrow">▼</span>
@@ -3809,23 +4091,48 @@ function renderSessionEditor() {
 
     renderSkeletalMap();
     renderSessionTimeline(clientSessions);
+    applyOpenSectionIds(pendingRestoreOpenSectionIds ?? getSavedOpenSectionIdsForCurrentSession());
+    bindSessionEditorDirtyListeners();
   } catch(e) {
     showToast('Error rendering session editor: ' + e.message, 'error');
   }
 }
 
+function bindSessionEditorDirtyListeners() {
+  const container = document.getElementById('session-editor-content');
+  if (!container || container._dirtyListenersBound) return;
+  container.addEventListener('input', e => {
+    if (e.target.closest('input, textarea, select')) markSessionDraftDirty({ potentiallyDirty: true });
+  });
+  container.addEventListener('change', e => {
+    if (e.target.closest('input, textarea, select')) sessionDraftPotentiallyDirty = false;
+  });
+  container._dirtyListenersBound = true;
+}
+
 function toggleSection(header) {
   const section = header.parentElement;
   section.classList.toggle('open');
+  if (currentSessionId) persistCurrentSessionOpenSections();
 }
 
 function cancelSession() {
-  if (currentClientId) { renderProfile(); showView('profile'); }
-  else showView('clients');
+  if (!confirmDiscardUnsavedSessionChanges()) return;
+  endSkeletalPreview({ restoreCurrent: false });
+  const clientId = currentClientId || sessionDraft.clientId;
+  clearSessionDraftBaseline();
+  if (clientId && persistClientProfileContext(clientId)) {
+    currentClientId = clientId;
+    renderProfile();
+    showView('profile', { skipUnsavedGuard: true, skipContextWrite: true });
+  } else {
+    showView('clients', { skipUnsavedGuard: true });
+  }
 }
 
 function saveSession() {
   try {
+    endSkeletalPreview({ restoreCurrent: true });
     const date = document.getElementById('s-date')?.value || sessionDraft.date;
     if (!date) { showToast(currentLang==='it'?'La data è obbligatoria':'Date is required', 'error'); return; }
     if (!canCreateSessionForClient(sessionDraft.clientId, currentSessionId)) {
@@ -3846,9 +4153,13 @@ function saveSession() {
       showToast(t('sessionSaved'), 'success');
     }
     saveState();
+    captureSessionDraftBaseline();
+    sessionDraftPotentiallyDirty = false;
+    sessionDraftRequiresInitialSave = false;
+    persistClientProfileContext(sessionDraft.clientId || currentClientId);
     renderProfile();
     renderClients();
-    showView('profile');
+    showView('profile', { skipUnsavedGuard: true, skipContextWrite: true });
   } catch(e) {
     showToast('Error saving session: ' + e.message, 'error');
   }
@@ -3873,16 +4184,20 @@ function skelPush(view) {
   skelFuture[view] = [];
 }
 function skelUndo(view) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   if (!skelHistory[view].length) { showToast(t('nothingToUndo'), 'info'); return; }
   skelFuture[view].push(skelSnapshot(view));
   const snap = skelHistory[view].pop();
+  markSessionDraftDirty();
   _applySnap(view, snap);
   rerenderSkeletalPanel(view);
 }
 function skelRedo(view) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   if (!skelFuture[view].length) { showToast(t('nothingToRedo'), 'info'); return; }
   skelHistory[view].push(skelSnapshot(view));
   const snap = skelFuture[view].pop();
+  markSessionDraftDirty();
   _applySnap(view, snap);
   rerenderSkeletalPanel(view);
 }
@@ -4038,12 +4353,14 @@ function buildSkeletalPanel(view) {
 
 function handleSkelClick(e, view) {
   if (e.target.closest('.marker-dot')) return;
+  if (!ensureCurrentSkeletalEditingContext()) return;
   const wrap = document.getElementById(`skel-wrap-${view}`);
   const rect = wrap.getBoundingClientRect();
   const x = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0.03), 0.97);
   const y = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0.03), 0.97);
   if (connectModeView === view) return;
   skelPush(view);
+  markSessionDraftDirty();
   const marker = { id: uid(), x, y, label: 'Other', type: 'Attention', note: '' };
   if (view === 'front') { if (!sessionDraft.skeletalMapMarkersFront) sessionDraft.skeletalMapMarkersFront=[]; sessionDraft.skeletalMapMarkersFront.push(marker); }
   else { if (!sessionDraft.skeletalMapMarkersBack) sessionDraft.skeletalMapMarkersBack=[]; sessionDraft.skeletalMapMarkersBack.push(marker); }
@@ -4053,6 +4370,7 @@ function handleSkelClick(e, view) {
 // Note modal
 let _noteModalView = null, _noteModalMarkerId = null;
 function openNoteModal(view, markerId) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   _noteModalView = view;
   _noteModalMarkerId = markerId;
   const markers = view === 'front' ? sessionDraft.skeletalMapMarkersFront : sessionDraft.skeletalMapMarkersBack;
@@ -4073,12 +4391,14 @@ function saveNoteModal() {
 
 function handleMarkerClick(view, markerId) {
   if (!connectModeView || connectModeView !== view) return;
+  if (!ensureCurrentSkeletalEditingContext()) return;
   if (!connectFirstMarkerId) {
     connectFirstMarkerId = markerId;
     const dot = document.getElementById(`mdot-${view}-${markerId}`);
     if (dot) dot.style.outline = '2px solid gold';
   } else if (connectFirstMarkerId !== markerId) {
     skelPush(view);
+    markSessionDraftDirty();
     const conn = { id: uid(), from: connectFirstMarkerId, to: markerId };
     if (view === 'front') { if (!sessionDraft.skeletalMapConnectionsFront) sessionDraft.skeletalMapConnectionsFront=[]; sessionDraft.skeletalMapConnectionsFront.push(conn); }
     else { if (!sessionDraft.skeletalMapConnectionsBack) sessionDraft.skeletalMapConnectionsBack=[]; sessionDraft.skeletalMapConnectionsBack.push(conn); }
@@ -4089,6 +4409,7 @@ function handleMarkerClick(view, markerId) {
 }
 
 function startConnectMode(view) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   connectModeView = view;
   connectFirstMarkerId = null;
   const bar = document.getElementById('connect-mode-bar');
@@ -4109,7 +4430,9 @@ function cancelConnect() {
 }
 
 function clearConnections(view) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   skelPush(view);
+  markSessionDraftDirty();
   if (view==='front') sessionDraft.skeletalMapConnectionsFront=[];
   else sessionDraft.skeletalMapConnectionsBack=[];
   rerenderSkeletalPanel(view);
@@ -4127,7 +4450,9 @@ function rerenderSkeletalPanel(view) {
 }
 
 function removeMarker(view, markerId) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   skelPush(view);
+  markSessionDraftDirty();
   if (view === 'front') {
     sessionDraft.skeletalMapMarkersFront = (sessionDraft.skeletalMapMarkersFront||[]).filter(m=>m.id!==markerId);
     sessionDraft.skeletalMapConnectionsFront = (sessionDraft.skeletalMapConnectionsFront||[]).filter(c=>c.from!==markerId&&c.to!==markerId);
@@ -4139,15 +4464,18 @@ function removeMarker(view, markerId) {
 }
 
 function removeLastMarker(view) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   if (view === 'front') {
     const markers = sessionDraft.skeletalMapMarkersFront || [];
     if (!markers.length) return;
+    markSessionDraftDirty();
     const last = markers[markers.length - 1];
     sessionDraft.skeletalMapMarkersFront = markers.slice(0, -1);
     sessionDraft.skeletalMapConnectionsFront = (sessionDraft.skeletalMapConnectionsFront || []).filter(c => c.from !== last.id && c.to !== last.id);
   } else {
     const markers = sessionDraft.skeletalMapMarkersBack || [];
     if (!markers.length) return;
+    markSessionDraftDirty();
     const last = markers[markers.length - 1];
     sessionDraft.skeletalMapMarkersBack = markers.slice(0, -1);
     sessionDraft.skeletalMapConnectionsBack = (sessionDraft.skeletalMapConnectionsBack || []).filter(c => c.from !== last.id && c.to !== last.id);
@@ -4156,9 +4484,10 @@ function removeLastMarker(view) {
 }
 
 function updateMarker(view, markerId, field, value) {
+  if (!ensureCurrentSkeletalEditingContext()) return;
   const markers = view === 'front' ? sessionDraft.skeletalMapMarkersFront : sessionDraft.skeletalMapMarkersBack;
   const m = markers.find(x => x.id === markerId);
-  if (m) { m[field] = value; rerenderSkeletalPanel(view); }
+  if (m) { markSessionDraftDirty(); m[field] = value; rerenderSkeletalPanel(view); }
 }
 
 // ════════════════════════════════════════════════════════
@@ -4196,14 +4525,62 @@ function renderSessionTimeline(sessions) {
   // Already rendered in buildSessionTimeline inside renderSkeletalMap
 }
 
+
+function endSkeletalPreview(options = {}) {
+  const preview = skeletalPreviewState;
+  if (!preview) return false;
+  const sameDraft = preview.draftId === getCurrentDraftIdentity();
+  if (options.restoreCurrent && sameDraft) {
+    sessionDraft.skeletalMapMarkersFront = cloneArrayForPreview(preview.originalFront);
+    sessionDraft.skeletalMapMarkersBack = cloneArrayForPreview(preview.originalBack);
+    sessionDraft.skeletalMapConnectionsFront = cloneArrayForPreview(preview.originalConnectionsFront);
+    sessionDraft.skeletalMapConnectionsBack = cloneArrayForPreview(preview.originalConnectionsBack);
+  }
+  skeletalPreviewToken += 1;
+  skeletalPreviewState = null;
+  return sameDraft;
+}
+function ensureCurrentSkeletalEditingContext() {
+  if (!skeletalPreviewState || skeletalPreviewState.draftId !== getCurrentDraftIdentity()) return true;
+  const restored = endSkeletalPreview({ restoreCurrent: true });
+  if (restored) {
+    rerenderSkeletalPanel('front');
+    rerenderSkeletalPanel('back');
+    const lbl = document.getElementById('timeline-preview-label');
+    if (lbl) lbl.textContent = t('restoredSession');
+    showToast(t('historicalPreviewClosed'), 'info', 2500);
+  }
+  return false;
+}
+function restoreSkeletalPreviewIfCurrent(token, options = {}) {
+  if (!skeletalPreviewState || skeletalPreviewState.token !== token) return false;
+  const sameDraft = skeletalPreviewState.draftId === getCurrentDraftIdentity();
+  if (sameDraft && options.restore !== false) {
+    sessionDraft.skeletalMapMarkersFront = cloneArrayForPreview(skeletalPreviewState.originalFront);
+    sessionDraft.skeletalMapMarkersBack = cloneArrayForPreview(skeletalPreviewState.originalBack);
+    sessionDraft.skeletalMapConnectionsFront = cloneArrayForPreview(skeletalPreviewState.originalConnectionsFront);
+    sessionDraft.skeletalMapConnectionsBack = cloneArrayForPreview(skeletalPreviewState.originalConnectionsBack);
+  }
+  skeletalPreviewState = null;
+  return sameDraft;
+}
+function beginSkeletalPreviewState() {
+  if (skeletalPreviewState) endSkeletalPreview({ restoreCurrent: true });
+  const token = ++skeletalPreviewToken;
+  skeletalPreviewState = {
+    token,
+    draftId: getCurrentDraftIdentity(),
+    originalFront: cloneArrayForPreview(sessionDraft.skeletalMapMarkersFront),
+    originalBack: cloneArrayForPreview(sessionDraft.skeletalMapMarkersBack),
+    originalConnectionsFront: cloneArrayForPreview(sessionDraft.skeletalMapConnectionsFront),
+    originalConnectionsBack: cloneArrayForPreview(sessionDraft.skeletalMapConnectionsBack)
+  };
+  return skeletalPreviewState;
+}
+
 function loadTimelineSession(sessionId) {
   const s = appState.sessions.find(x => x.id === sessionId);
   if (!s) return;
-  const prevFront = sessionDraft.skeletalMapMarkersFront;
-  const prevBack = sessionDraft.skeletalMapMarkersBack;
-  const prevCF = sessionDraft.skeletalMapConnectionsFront;
-  const prevCB = sessionDraft.skeletalMapConnectionsBack;
-
   if (sessionId === sessionDraft.id) {
     document.getElementById('timeline-preview-label').textContent = t('currentSession');
     return;
@@ -4213,22 +4590,22 @@ function loadTimelineSession(sessionId) {
   const scrollMsg = currentLang === 'it' ? 'scorri su per continuare a modificare la sessione corrente' : 'scroll up to continue editing current session';
   document.getElementById('timeline-preview-label').textContent = `${t('previewingSession')}: ${s.date} · ${markerCount} markers — ${scrollMsg}`;
 
-  sessionDraft.skeletalMapMarkersFront = s.skeletalMapMarkersFront || [];
-  sessionDraft.skeletalMapMarkersBack = s.skeletalMapMarkersBack || [];
-  sessionDraft.skeletalMapConnectionsFront = s.skeletalMapConnectionsFront || [];
-  sessionDraft.skeletalMapConnectionsBack = s.skeletalMapConnectionsBack || [];
+  const previewState = beginSkeletalPreviewState();
+  sessionDraft.skeletalMapMarkersFront = cloneArrayForPreview(s.skeletalMapMarkersFront);
+  sessionDraft.skeletalMapMarkersBack = cloneArrayForPreview(s.skeletalMapMarkersBack);
+  sessionDraft.skeletalMapConnectionsFront = cloneArrayForPreview(s.skeletalMapConnectionsFront);
+  sessionDraft.skeletalMapConnectionsBack = cloneArrayForPreview(s.skeletalMapConnectionsBack);
   rerenderSkeletalPanel('front');
   rerenderSkeletalPanel('back');
 
   setTimeout(() => {
-    sessionDraft.skeletalMapMarkersFront = prevFront;
-    sessionDraft.skeletalMapMarkersBack = prevBack;
-    sessionDraft.skeletalMapConnectionsFront = prevCF;
-    sessionDraft.skeletalMapConnectionsBack = prevCB;
-    rerenderSkeletalPanel('front');
-    rerenderSkeletalPanel('back');
-    const lbl = document.getElementById('timeline-preview-label');
-    if (lbl) lbl.textContent = t('restoredSession');
+    const restored = restoreSkeletalPreviewIfCurrent(previewState.token, { restore: true });
+    if (restored) {
+      rerenderSkeletalPanel('front');
+      rerenderSkeletalPanel('back');
+      const lbl = document.getElementById('timeline-preview-label');
+      if (lbl) lbl.textContent = t('restoredSession');
+    }
   }, 4000);
 }
 
@@ -4439,12 +4816,16 @@ function renderAllSessions() {
 }
 
 function openSessionFromGlobal(sessionId) {
-  const s = appState.sessions.find(x => x.id === sessionId);
-  if (!s) return;
-  const client = appState.clients.find(c => c.id === s.clientId);
-  if (!client) return;
-  openClient(client.id);
-  setTimeout(() => editSession(sessionId), 80);
+  if (!confirmDiscardUnsavedSessionChanges()) return false;
+  const s = appState.sessions.find(x => x.id === sessionId && !x.isTrashed);
+  if (!s) return false;
+  const client = appState.clients.find(c => c.id === s.clientId && !c.isTrashed);
+  if (!client) return false;
+  currentClientId = client.id;
+  renderProfile();
+  showView('profile', { skipUnsavedGuard: true, skipContextWrite: true });
+  setTimeout(() => editSession(sessionId, { skipUnsavedGuard: true }), 80);
+  return true;
 }
 
 function renderTrash() {
@@ -4532,8 +4913,12 @@ function restoreSession(sessionId) {
 }
 
 function deleteSessionForever(sessionId) {
+  const deletingCurrentSession = currentSessionId === sessionId;
+  if (deletingCurrentSession && !confirmDiscardUnsavedSessionChanges()) return;
+  if (deletingCurrentSession) endSkeletalPreview({ restoreCurrent: false });
   appState.sessions = appState.sessions.filter(s => s.id !== sessionId);
   saveState();
+  if (currentSessionId === sessionId) { currentSessionId = null; clearSessionDraftBaseline(); persistClientProfileContext(currentClientId); }
   showToast(t('sessionDeleted'), 'success');
   renderTrash();
 }
@@ -4563,6 +4948,7 @@ function restoreClient(clientId) {
 }
 
 function confirmDeleteForever(clientId) {
+  if (currentClientId === clientId && !confirmDiscardUnsavedSessionChanges()) return;
   deleteForeverTargetId = clientId;
   document.getElementById('confirm-delete-cb').checked = false;
   openModal('modal-delete-forever');
@@ -4573,8 +4959,10 @@ function executeDeleteForever() {
     showToast(t('confirmCheckbox'), 'error'); return;
   }
   try {
+    const deletingCurrentClient = currentClientId === deleteForeverTargetId;
     appState.clients = appState.clients.filter(c => c.id !== deleteForeverTargetId);
     appState.sessions = appState.sessions.filter(s => s.clientId !== deleteForeverTargetId);
+    if (deletingCurrentClient) { currentClientId = null; currentSessionId = null; clearSessionDraftBaseline(); persistGenericNavigationContext('clients'); }
     saveState();
     showToast(t('clientDeleted'), 'success');
     closeModal('modal-delete-forever');
@@ -5631,7 +6019,7 @@ async function onSignedIn(user) {
   updateSyncIndicator('syncing');
   const loaded = await loadFromCloud();
   if (!loaded) loadState({ allowLegacyMigration: true });
-  showView('clients');
+  if (!restoreSavedNavigationContext()) showView('clients', { skipUnsavedGuard: true });
   hideAuthScreen();
   flushPendingCheckoutToast();
   updateSyncIndicator(isOnline ? 'synced' : null);
@@ -5722,7 +6110,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+window.addEventListener('beforeunload', e => {
+  if (!hasUnsavedSessionChanges()) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 window.addEventListener('error', e => {
+
   showToast('Error: ' + e.message, 'error');
 });
 </script>
