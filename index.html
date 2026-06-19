@@ -473,25 +473,16 @@ input[type=range]::-webkit-slider-thumb {
 .marker-table td:first-child { text-align: center; }
 .marker-color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-/* ─── TIMELINE ─── */
-.timeline-wrap { margin-top: 16px; }
-.timeline-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
-.timeline-track { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; align-items: center; }
-.timeline-track::-webkit-scrollbar { height: 3px; }
-.timeline-track::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-.timeline-node {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  cursor: pointer; flex-shrink: 0; padding: 6px 8px;
-  border-radius: var(--radius-sm); border: 1px solid var(--border);
-  background: var(--surface); transition: all var(--transition);
-  min-width: 70px;
-}
-.timeline-node:hover { border-color: var(--accent2); background: var(--accent-light); }
-.timeline-node.active { border-color: var(--accent); background: var(--accent-light); }
-.timeline-node-date { font-family: var(--font-mono); font-size: 10px; color: var(--accent2); }
-.timeline-node-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; max-width: 50px; }
-.timeline-mini-dot { width: 6px; height: 6px; border-radius: 50%; }
-.timeline-line { flex: 1; height: 1px; background: var(--border); min-width: 12px; }
+/* ─── MAP SELECTOR ─── */
+.map-selector-wrap { margin-top: 16px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); }
+.map-selector-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.map-selector-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+.map-selector-select { flex: 1; min-width: 210px; }
+.timeline-preview-label { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 8px; border-radius: 999px; background: var(--accent-light); border: 1px solid var(--accent); color: var(--accent2); font-size: 11px; font-weight: 600; }
+.readonly-pill { display: inline-flex; vertical-align: middle; margin-left: 6px; padding: 2px 6px; border-radius: 999px; background: var(--accent-light); border: 1px solid var(--border2); color: var(--accent2); font-family: var(--font-sans); font-size: 9px; letter-spacing: 0.02em; }
+.skeletal-canvas-wrap.read-only { cursor: default; }
+.skeletal-canvas-wrap.read-only .marker-dot { cursor: default; }
+.note-expand-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 
 /* ─── CONNECTING MODE ─── */
 .connect-mode-bar {
@@ -645,8 +636,9 @@ input[type=range]::-webkit-slider-thumb {
   .skel-canvas { max-width: 100%; height: auto; }
 
   /* Timeline */
-  .timeline-scroll { gap: 10px; }
-  .timeline-node { min-width: 64px; }
+  .map-selector-row { align-items: stretch; }
+  .map-selector-label { width: 100%; }
+  .map-selector-select { width: 100%; min-width: 0; }
 
   /* Auth screen */
   #auth-screen { padding: 12px; }
@@ -1672,9 +1664,11 @@ const STRINGS = {
     undoBtn: '↩ Undo', redoBtn: '↪ Redo', connectBtn: '🔗 Connect', clearArrowsBtn: '✕ Arrows',
     clickSilhouette: 'Click the silhouette to place a marker',
     zoneCol: 'Zone', typeCol: 'Type', noteCol: 'Note',
-    timelineTitle: 'Session History — click to preview skeletal map',
-    currentSession: '← Current session', restoredSession: '← Restored current session',
-    previewingSession: 'Previewing',
+    timelineTitle: 'Skeletal history',
+    mapDisplayed: 'Map displayed',
+    currentSession: 'Current session',
+    historicalPreviewReadonly: 'Read-only historical preview',
+    historicalPreviewReadOnlyToast: 'Historical preview is read-only. Select Current session to edit.',
     noSessionOpen: 'No session open', openSessionMsg: 'Open or create a session from a client profile.',
     // All sessions
     allSessionsTitle: 'Sessions', allSessionsSubtitle: 'All sessions across clients · sorted by date',
@@ -1682,7 +1676,6 @@ const STRINGS = {
     noSessionsFound: 'No sessions found', sessionsAppear: 'Sessions appear here once you create them from a client profile.',
     openBtn: 'Open →',
     unsavedSessionChangesConfirm: 'You have unsaved session changes. Discard them and continue?',
-    historicalPreviewClosed: 'Historical preview closed. Repeat the action to edit the current session.',
     // Trash
     trashTitle: 'Trash', trashSubtitle: 'Deleted items can be restored or removed permanently',
     noTrashedClients: 'No trashed clients.', noTrashedSessions: 'No trashed sessions.',
@@ -1873,16 +1866,17 @@ const STRINGS = {
     undoBtn: '↩ Annulla', redoBtn: '↪ Ripeti', connectBtn: '🔗 Collega', clearArrowsBtn: '✕ Frecce',
     clickSilhouette: 'Clicca sulla silhouette per posizionare un marker',
     zoneCol: 'Zona', typeCol: 'Tipo', noteCol: 'Nota',
-    timelineTitle: 'Cronologia Sessioni — clicca per vedere la mappa scheletrica',
-    currentSession: '← Sessione corrente', restoredSession: '← Sessione corrente ripristinata',
-    previewingSession: 'Anteprima',
+    timelineTitle: 'Storico mappa scheletrica',
+    mapDisplayed: 'Mappa visualizzata',
+    currentSession: 'Sessione corrente',
+    historicalPreviewReadonly: 'Anteprima storica in sola lettura',
+    historicalPreviewReadOnlyToast: 'L’anteprima storica è in sola lettura. Seleziona Sessione corrente per modificare.',
     noSessionOpen: 'Nessuna sessione aperta', openSessionMsg: 'Apri o crea una sessione dal profilo di un allievo.',
     allSessionsTitle: 'Sessioni', allSessionsSubtitle: 'Tutte le sessioni dei clienti · ordinate per data',
     searchClientPlaceholder: 'Cerca allievo o etichetta…', allClientsOption: 'Tutti gli allievi',
     noSessionsFound: 'Nessuna sessione trovata', sessionsAppear: 'Le sessioni appaiono qui una volta create dal profilo di un allievo.',
     openBtn: 'Apri →',
     unsavedSessionChangesConfirm: 'Hai modifiche non salvate nella sessione. Vuoi scartarle e continuare?',
-    historicalPreviewClosed: 'Anteprima storica chiusa. Ripeti l’azione per modificare la sessione corrente.',
     trashTitle: 'Cestino', trashSubtitle: 'Gli elementi eliminati possono essere ripristinati o rimossi definitivamente',
     noTrashedClients: 'Nessun allievo nel cestino.', noTrashedSessions: 'Nessuna sessione nel cestino.',
     restoreBtn: '↩ Ripristina', deleteForeverBtn: '✕ Elimina Definitivamente',
@@ -2478,7 +2472,7 @@ async function authGetUser() {
 
 async function authSignOut() {
   if (!confirmDiscardUnsavedSessionChanges()) return;
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   const signingOutUserId = currentUser?.id;
   clearSavedNavigationContext(signingOutUserId);
   try { await Promise.race([
@@ -2704,8 +2698,7 @@ let sessionDraftBaseline = null;
 let sessionDraftPotentiallyDirty = false;
 let sessionDraftRequiresInitialSave = false;
 let pendingRestoreOpenSectionIds = null;
-let skeletalPreviewState = null;
-let skeletalPreviewToken = 0;
+let skeletalPreviewSessionId = null;
 let newClientHighlightId = null;
 let newClientHighlightTimeout = null;
 
@@ -3003,14 +2996,7 @@ function cloneArrayForPreview(value) {
   return JSON.parse(JSON.stringify(Array.isArray(value) ? value : []));
 }
 function getSessionDraftForDirtyCompare() {
-  const draft = JSON.parse(JSON.stringify(sessionDraft || {}));
-  if (skeletalPreviewState && skeletalPreviewState.draftId === getCurrentDraftIdentity()) {
-    draft.skeletalMapMarkersFront = cloneArrayForPreview(skeletalPreviewState.originalFront);
-    draft.skeletalMapMarkersBack = cloneArrayForPreview(skeletalPreviewState.originalBack);
-    draft.skeletalMapConnectionsFront = cloneArrayForPreview(skeletalPreviewState.originalConnectionsFront);
-    draft.skeletalMapConnectionsBack = cloneArrayForPreview(skeletalPreviewState.originalConnectionsBack);
-  }
-  return draft;
+  return JSON.parse(JSON.stringify(sessionDraft || {}));
 }
 function getNormalizedSessionDraftSnapshot() {
   return JSON.stringify(normalizeSessionForDirtyCompare(getSessionDraftForDirtyCompare()));
@@ -3041,7 +3027,7 @@ function confirmDiscardUnsavedSessionChanges() {
   if (!hasUnsavedSessionChanges()) return true;
   const ok = window.confirm(t('unsavedSessionChangesConfirm'));
   if (ok) {
-    endSkeletalPreview({ restoreCurrent: false });
+    clearSkeletalPreview();
     clearSessionDraftBaseline();
   }
   return ok;
@@ -3155,7 +3141,7 @@ function renderSessionEditorEmptyState() {
 }
 
 function resetUiResidualState() {
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   currentClientId = null;
   currentSessionId = null;
   editingClientId = null;
@@ -3219,7 +3205,7 @@ function showView(name, options = {}) {
   const { skipUnsavedGuard = false, skipContextWrite = false } = options;
   const activeView = document.querySelector('.view.active')?.id.replace('view-', '');
   if (!skipUnsavedGuard && activeView === 'session' && name !== 'session' && !confirmDiscardUnsavedSessionChanges()) return false;
-  if (activeView === 'session' && name !== 'session') endSkeletalPreview({ restoreCurrent: false });
+  if (activeView === 'session' && name !== 'session') clearSkeletalPreview();
   closeMobileMoreMenu();
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('view-' + name);
@@ -3484,7 +3470,7 @@ function lastSessionDate(clientId) {
 function openClient(clientId, options = {}) {
   const { skipUnsavedGuard = false, skipContextWrite = false } = options;
   if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   const client = appState.clients.find(c => c.id === clientId && !c.isTrashed);
   if (!client) { persistGenericNavigationContext('clients'); return false; }
   currentClientId = clientId;
@@ -3776,7 +3762,7 @@ function renderProfile() {
 function deleteSession(sessionId) {
   const deletingCurrentSession = currentSessionId === sessionId;
   if (deletingCurrentSession && !confirmDiscardUnsavedSessionChanges()) return;
-  if (deletingCurrentSession) endSkeletalPreview({ restoreCurrent: false });
+  if (deletingCurrentSession) clearSkeletalPreview();
   try {
     const idx = appState.sessions.findIndex(s => s.id === sessionId);
     if (idx === -1) { showToast(currentLang==='it'?'Sessione non trovata':'Session not found', 'error'); return; }
@@ -3795,7 +3781,7 @@ function deleteSession(sessionId) {
 function duplicateSession(sessionId, options = {}) {
   const { skipUnsavedGuard = false } = options;
   if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   const src = appState.sessions.find(s => s.id === sessionId && !s.isTrashed);
   if (!src) return false;
   if (!canCreateSessionForClient(src.clientId)) {
@@ -3824,7 +3810,7 @@ function duplicateSession(sessionId, options = {}) {
 
 function newSession() {
   if (!currentClientId) return;
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   if (!canCreateSessionForClient(currentClientId)) {
     showToast(x('freeSessionLimitReached'), 'error');
     return;
@@ -3853,7 +3839,7 @@ function newSession() {
 function editSession(sessionId, options = {}) {
   const { skipUnsavedGuard = false, skipContextWrite = false, restoreOpenSections = null } = options;
   if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   const s = appState.sessions.find(x => x.id === sessionId && !x.isTrashed);
   if (!s) return false;
   const client = appState.clients.find(c => c.id === s.clientId && !c.isTrashed);
@@ -4118,7 +4104,7 @@ function toggleSection(header) {
 
 function cancelSession() {
   if (!confirmDiscardUnsavedSessionChanges()) return;
-  endSkeletalPreview({ restoreCurrent: false });
+  clearSkeletalPreview();
   const clientId = currentClientId || sessionDraft.clientId;
   clearSessionDraftBaseline();
   if (clientId && persistClientProfileContext(clientId)) {
@@ -4132,7 +4118,7 @@ function cancelSession() {
 
 function saveSession() {
   try {
-    endSkeletalPreview({ restoreCurrent: true });
+    clearSkeletalPreview();
     const date = document.getElementById('s-date')?.value || sessionDraft.date;
     if (!date) { showToast(currentLang==='it'?'La data è obbligatoria':'Date is required', 'error'); return; }
     if (!canCreateSessionForClient(sessionDraft.clientId, currentSessionId)) {
@@ -4267,11 +4253,13 @@ function markerSymbolSVG(type, color) {
 }
 
 function buildSkeletalPanel(view) {
-  const markers     = view === 'front' ? (sessionDraft.skeletalMapMarkersFront||[]) : (sessionDraft.skeletalMapMarkersBack||[]);
-  const connections = view === 'front' ? (sessionDraft.skeletalMapConnectionsFront||[]) : (sessionDraft.skeletalMapConnectionsBack||[]);
+  const displayData = getSkeletalDisplayData(view);
+  const markers = displayData.markers;
+  const connections = displayData.connections;
+  const readOnly = displayData.readOnly;
   const svgContent  = view === 'front' ? SVG_FRONT : SVG_BACK;
-  const canUndo = (skelHistory[view]||[]).length > 0;
-  const canRedo = (skelFuture[view]||[]).length > 0;
+  const canUndo = !readOnly && (skelHistory[view]||[]).length > 0;
+  const canRedo = !readOnly && (skelFuture[view]||[]).length > 0;
 
   const markersHtml = markers.map(m => {
     const color = ZONE_COLORS[m.label] || '#888';
@@ -4279,7 +4267,7 @@ function buildSkeletalPanel(view) {
     return `<div class="marker-dot" id="mdot-${view}-${m.id}"
       style="left:${m.x*100}%;top:${m.y*100}%;background:transparent;border:none;width:18px;height:18px;display:flex;align-items:center;justify-content:center;"
       title="${m.label} · ${normalizeMarkerType(m.type)||'Attention'}${m.note?' · '+m.note:''}"
-      onclick="event.stopPropagation();handleMarkerClick('${view}','${m.id}')">${sym}</div>`;
+      onclick="event.stopPropagation();${readOnly ? '' : `handleMarkerClick('${view}','${m.id}')`}">${sym}</div>`;
   }).join('');
 
   const arrowsHtml = `<svg class="arrow-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -4314,21 +4302,21 @@ function buildSkeletalPanel(view) {
     const typeOpts = MARKER_TYPE_KEYS.map(t=>`<option value="${t}" ${t===(normalizeMarkerType(m.type)||'Attention')?'selected':''}>${MARKER_TYPES[t].symbol} ${t}</option>`).join('');
     return `<tr>
       <td style="text-align:center;">${markerSymbolSVG(m.type||'Attention',color)}</td>
-      <td><select style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','label',this.value)">${zoneOpts}</select></td>
-      <td><select style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','type',this.value)">${typeOpts}</select></td>
+      <td><select ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','label',this.value)">${zoneOpts}</select></td>
+      <td><select ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','type',this.value)">${typeOpts}</select></td>
       <td class="marker-note-cell">
         <div class="note-cell-inner">
-          <input type="text" style="font-size:10px;padding:2px 4px;flex:1;min-width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" value="${esc(m.note||'')}" placeholder="note…" onchange="updateMarker('${view}','${m.id}','note',this.value)" autocomplete="off">
-          <button class="note-expand-btn" title="Expand note" onclick="openNoteModal('${view}','${m.id}')">⤢</button>
+          <input type="text" ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;flex:1;min-width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" value="${esc(m.note||'')}" placeholder="note…" onchange="updateMarker('${view}','${m.id}','note',this.value)" autocomplete="off">
+          <button class="note-expand-btn" ${readOnly ? 'disabled' : ''} title="Expand note" onclick="openNoteModal('${view}','${m.id}')">⤢</button>
         </div>
       </td>
-      <td class="marker-delete-cell"><button class="btn btn-danger btn-sm" onclick="removeMarker('${view}','${m.id}')" style="padding:2px 6px;font-size:10px;min-width:30px;justify-content:center;">✕</button></td>
+      <td class="marker-delete-cell"><button class="btn btn-danger btn-sm" ${readOnly ? 'disabled' : ''} onclick="removeMarker('${view}','${m.id}')" style="padding:2px 6px;font-size:10px;min-width:30px;justify-content:center;">✕</button></td>
     </tr>`;
   }).join('');
 
   return `<div class="skeletal-panel">
-    <div class="skeletal-panel-title">${view==='front'?t('frontView'):t('backView')}</div>
-    <div class="skeletal-canvas-wrap" id="skel-wrap-${view}" style="position:relative;cursor:crosshair;">
+    <div class="skeletal-panel-title">${view==='front'?t('frontView'):t('backView')}${readOnly ? ` <span class="readonly-pill">${t('historicalPreviewReadonly')}</span>` : ''}</div>
+    <div class="skeletal-canvas-wrap ${readOnly ? 'read-only' : ''}" id="skel-wrap-${view}" style="position:relative;cursor:${readOnly ? 'default' : 'crosshair'};">
       ${svgContent}
       ${arrowsHtml}
       ${markersHtml}
@@ -4336,8 +4324,8 @@ function buildSkeletalPanel(view) {
     <div class="skeletal-panel-controls">
       <button class="btn btn-secondary btn-sm" onclick="skelUndo('${view}')" ${canUndo?'':'disabled'}>${t('undoBtn')}</button>
       <button class="btn btn-secondary btn-sm" onclick="skelRedo('${view}')" ${canRedo?'':'disabled'}>${t('redoBtn')}</button>
-      <button class="btn btn-ghost btn-sm" onclick="startConnectMode('${view}')">${t('connectBtn')}</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearConnections('${view}')">${t('clearArrowsBtn')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="startConnectMode('${view}')" ${readOnly?'disabled':''}>${t('connectBtn')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearConnections('${view}')" ${readOnly?'disabled':''}>${t('clearArrowsBtn')}</button>
     </div>
     ${markers.length > 0 ? `<div class="skeletal-marker-table-wrap" style="margin-top:10px;">
       <div class="skeletal-scroll-hint">${currentLang === 'it' ? '↔ Scorri orizzontalmente' : '↔ Swipe horizontally'}</div>
@@ -4347,7 +4335,7 @@ function buildSkeletalPanel(view) {
           <tbody>${tableRowsHtml}</tbody>
         </table>
       </div>
-    </div>` : `<p class="note-small" style="text-align:center;margin-top:10px;">${t('clickSilhouette')}</p>`}
+    </div>` : `<p class="note-small" style="text-align:center;margin-top:10px;">${readOnly ? t('historicalPreviewReadonly') : t('clickSilhouette')}</p>`}
   </div>`;
 }
 
@@ -4493,31 +4481,38 @@ function updateMarker(view, markerId, field, value) {
 // ════════════════════════════════════════════════════════
 // SESSION TIMELINE (in skeletal map section)
 // ════════════════════════════════════════════════════════
+function formatSkeletalPreviewDate(dateValue) {
+  if (!dateValue) return '';
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  return date.toLocaleDateString(currentLang === 'it' ? 'it-IT' : 'en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+}
 function buildSessionTimeline() {
-  const clientSessions = appState.sessions.filter(s => s.clientId === sessionDraft.clientId).sort(compareSessionsAsc);
-  if (clientSessions.length <= 1) return '';
+  const currentId = getCurrentDraftIdentity();
+  const previewSession = getSelectedSkeletalPreviewSession();
+  const historicalSessions = appState.sessions
+    .filter(s => s.clientId === sessionDraft.clientId && !s.isTrashed && s.id !== currentId && hasSkeletalMapData(s))
+    .sort(compareSessionsDesc)
+    .slice(0, 2);
+  if (!historicalSessions.length) return '';
 
-  const nodes = clientSessions.map((s, i) => {
-    const mf = (s.skeletalMapMarkersFront || []);
-    const mb = (s.skeletalMapMarkersBack || []);
-    const allMarkers = [...mf, ...mb].slice(0, 8);
-    const dotsHtml = allMarkers.map(m => {
-      const color = ZONE_COLORS[m.label] || '#888';
-      return `<div class="timeline-mini-dot" style="background:${color};"></div>`;
-    }).join('');
-    const isActive = s.id === sessionDraft.id;
-    return `
-      ${i > 0 ? '<div class="timeline-line"></div>' : ''}
-      <div class="timeline-node ${isActive ? 'active' : ''}" onclick="loadTimelineSession('${s.id}')" title="${s.date}">
-        <div class="timeline-node-date">${s.date.slice(5)}</div>
-        <div class="timeline-node-dots">${dotsHtml || '<span style="font-size:9px;color:var(--text3);">—</span>'}</div>
-      </div>`;
-  }).join('');
+  const selectedValue = previewSession ? previewSession.id : 'current';
+  const options = [
+    `<option value="current" ${selectedValue === 'current' ? 'selected' : ''}>${t('currentSession')}</option>`,
+    ...historicalSessions.map(s => `<option value="${s.id}" ${selectedValue === s.id ? 'selected' : ''}>${esc(formatSkeletalPreviewDate(s.date))}</option>`)
+  ].join('');
+  const previewLabel = previewSession
+    ? `<p id="timeline-preview-label" class="timeline-preview-label">${t('historicalPreviewReadonly')}: ${esc(formatSkeletalPreviewDate(previewSession.date))}</p>`
+    : '';
 
-  return `<div class="timeline-wrap">
-    <div class="timeline-title">${t('timelineTitle')}</div>
-    <div class="timeline-track">${nodes}</div>
-    <p id="timeline-preview-label" class="note-small" style="margin-top:6px;"></p>
+  return `<div class="map-selector-wrap">
+    <div class="map-selector-row">
+      <label class="map-selector-label" for="skeletal-map-selector">${t('mapDisplayed')}</label>
+      <select id="skeletal-map-selector" class="map-selector-select" onchange="loadTimelineSession(this.value)">${options}</select>
+    </div>
+    ${previewLabel}
   </div>`;
 }
 
@@ -4526,87 +4521,73 @@ function renderSessionTimeline(sessions) {
 }
 
 
-function endSkeletalPreview(options = {}) {
-  const preview = skeletalPreviewState;
-  if (!preview) return false;
-  const sameDraft = preview.draftId === getCurrentDraftIdentity();
-  if (options.restoreCurrent && sameDraft) {
-    sessionDraft.skeletalMapMarkersFront = cloneArrayForPreview(preview.originalFront);
-    sessionDraft.skeletalMapMarkersBack = cloneArrayForPreview(preview.originalBack);
-    sessionDraft.skeletalMapConnectionsFront = cloneArrayForPreview(preview.originalConnectionsFront);
-    sessionDraft.skeletalMapConnectionsBack = cloneArrayForPreview(preview.originalConnectionsBack);
+function hasSkeletalMapData(session) {
+  return !!session && (
+    (session.skeletalMapMarkersFront || []).length > 0 ||
+    (session.skeletalMapMarkersBack || []).length > 0 ||
+    (session.skeletalMapConnectionsFront || []).length > 0 ||
+    (session.skeletalMapConnectionsBack || []).length > 0
+  );
+}
+function getSelectedSkeletalPreviewSession() {
+  if (!skeletalPreviewSessionId || !sessionDraft?.clientId) return null;
+  const currentId = getCurrentDraftIdentity();
+  const selected = appState.sessions.find(s =>
+    s.id === skeletalPreviewSessionId &&
+    s.clientId === sessionDraft.clientId &&
+    !s.isTrashed &&
+    s.id !== currentId &&
+    hasSkeletalMapData(s)
+  );
+  if (!selected) {
+    skeletalPreviewSessionId = null;
+    return null;
   }
-  skeletalPreviewToken += 1;
-  skeletalPreviewState = null;
-  return sameDraft;
+  return selected;
+}
+function isSkeletalPreviewActive() {
+  return !!getSelectedSkeletalPreviewSession();
+}
+function getSkeletalDisplayData(view) {
+  const selected = getSelectedSkeletalPreviewSession();
+  const source = selected || sessionDraft || {};
+  const isFront = view === 'front';
+  return {
+    markers: selected
+      ? cloneArrayForPreview(isFront ? source.skeletalMapMarkersFront : source.skeletalMapMarkersBack)
+      : (isFront ? (sessionDraft.skeletalMapMarkersFront || []) : (sessionDraft.skeletalMapMarkersBack || [])),
+    connections: selected
+      ? cloneArrayForPreview(isFront ? source.skeletalMapConnectionsFront : source.skeletalMapConnectionsBack)
+      : (isFront ? (sessionDraft.skeletalMapConnectionsFront || []) : (sessionDraft.skeletalMapConnectionsBack || [])),
+    readOnly: !!selected,
+    sessionId: selected?.id || getCurrentDraftIdentity(),
+    date: selected?.date || sessionDraft?.date || ''
+  };
+}
+function clearSkeletalPreview(options = {}) {
+  const hadPreview = !!skeletalPreviewSessionId;
+  skeletalPreviewSessionId = null;
+  cancelConnect();
+  if (options.rerender && document.getElementById('skeletal-map-ui')) renderSkeletalMap();
+  return hadPreview;
 }
 function ensureCurrentSkeletalEditingContext() {
-  if (!skeletalPreviewState || skeletalPreviewState.draftId !== getCurrentDraftIdentity()) return true;
-  const restored = endSkeletalPreview({ restoreCurrent: true });
-  if (restored) {
-    rerenderSkeletalPanel('front');
-    rerenderSkeletalPanel('back');
-    const lbl = document.getElementById('timeline-preview-label');
-    if (lbl) lbl.textContent = t('restoredSession');
-    showToast(t('historicalPreviewClosed'), 'info', 2500);
-  }
+  if (!isSkeletalPreviewActive()) return true;
+  showToast(t('historicalPreviewReadOnlyToast'), 'info', 2500);
   return false;
-}
-function restoreSkeletalPreviewIfCurrent(token, options = {}) {
-  if (!skeletalPreviewState || skeletalPreviewState.token !== token) return false;
-  const sameDraft = skeletalPreviewState.draftId === getCurrentDraftIdentity();
-  if (sameDraft && options.restore !== false) {
-    sessionDraft.skeletalMapMarkersFront = cloneArrayForPreview(skeletalPreviewState.originalFront);
-    sessionDraft.skeletalMapMarkersBack = cloneArrayForPreview(skeletalPreviewState.originalBack);
-    sessionDraft.skeletalMapConnectionsFront = cloneArrayForPreview(skeletalPreviewState.originalConnectionsFront);
-    sessionDraft.skeletalMapConnectionsBack = cloneArrayForPreview(skeletalPreviewState.originalConnectionsBack);
-  }
-  skeletalPreviewState = null;
-  return sameDraft;
-}
-function beginSkeletalPreviewState() {
-  if (skeletalPreviewState) endSkeletalPreview({ restoreCurrent: true });
-  const token = ++skeletalPreviewToken;
-  skeletalPreviewState = {
-    token,
-    draftId: getCurrentDraftIdentity(),
-    originalFront: cloneArrayForPreview(sessionDraft.skeletalMapMarkersFront),
-    originalBack: cloneArrayForPreview(sessionDraft.skeletalMapMarkersBack),
-    originalConnectionsFront: cloneArrayForPreview(sessionDraft.skeletalMapConnectionsFront),
-    originalConnectionsBack: cloneArrayForPreview(sessionDraft.skeletalMapConnectionsBack)
-  };
-  return skeletalPreviewState;
 }
 
 function loadTimelineSession(sessionId) {
-  const s = appState.sessions.find(x => x.id === sessionId);
-  if (!s) return;
-  if (sessionId === sessionDraft.id) {
-    document.getElementById('timeline-preview-label').textContent = t('currentSession');
+  const currentId = getCurrentDraftIdentity();
+  if (sessionId === currentId || sessionId === 'current') {
+    clearSkeletalPreview({ rerender: true });
     return;
   }
-
-  const markerCount = (s.skeletalMapMarkersFront||[]).length + (s.skeletalMapMarkersBack||[]).length;
-  const scrollMsg = currentLang === 'it' ? 'scorri su per continuare a modificare la sessione corrente' : 'scroll up to continue editing current session';
-  document.getElementById('timeline-preview-label').textContent = `${t('previewingSession')}: ${s.date} · ${markerCount} markers — ${scrollMsg}`;
-
-  const previewState = beginSkeletalPreviewState();
-  sessionDraft.skeletalMapMarkersFront = cloneArrayForPreview(s.skeletalMapMarkersFront);
-  sessionDraft.skeletalMapMarkersBack = cloneArrayForPreview(s.skeletalMapMarkersBack);
-  sessionDraft.skeletalMapConnectionsFront = cloneArrayForPreview(s.skeletalMapConnectionsFront);
-  sessionDraft.skeletalMapConnectionsBack = cloneArrayForPreview(s.skeletalMapConnectionsBack);
-  rerenderSkeletalPanel('front');
-  rerenderSkeletalPanel('back');
-
-  setTimeout(() => {
-    const restored = restoreSkeletalPreviewIfCurrent(previewState.token, { restore: true });
-    if (restored) {
-      rerenderSkeletalPanel('front');
-      rerenderSkeletalPanel('back');
-      const lbl = document.getElementById('timeline-preview-label');
-      if (lbl) lbl.textContent = t('restoredSession');
-    }
-  }, 4000);
+  const s = appState.sessions.find(x => x.id === sessionId && x.clientId === sessionDraft.clientId && !x.isTrashed);
+  if (!s || s.id === currentId || !hasSkeletalMapData(s)) return;
+  skeletalPreviewSessionId = s.id;
+  cancelConnect();
+  renderSkeletalMap();
 }
 
 // ════════════════════════════════════════════════════════
@@ -4915,7 +4896,7 @@ function restoreSession(sessionId) {
 function deleteSessionForever(sessionId) {
   const deletingCurrentSession = currentSessionId === sessionId;
   if (deletingCurrentSession && !confirmDiscardUnsavedSessionChanges()) return;
-  if (deletingCurrentSession) endSkeletalPreview({ restoreCurrent: false });
+  if (deletingCurrentSession) clearSkeletalPreview();
   appState.sessions = appState.sessions.filter(s => s.id !== sessionId);
   saveState();
   if (currentSessionId === sessionId) { currentSessionId = null; clearSessionDraftBaseline(); persistClientProfileContext(currentClientId); }
