@@ -6329,7 +6329,7 @@ async function onSignedIn(user, options = {}) {
   const loaded = await loadFromCloud();
   if (!loaded) loadState({ allowLegacyMigration: true });
   if (entry === 'explicit-login') {
-    showView('home', { skipUnsavedGuard: true, skipContextWrite: true });
+    showView('home', { skipUnsavedGuard: true });
   } else if (!restoreSavedNavigationContext()) {
     showView('clients', { skipUnsavedGuard: true });
   }
