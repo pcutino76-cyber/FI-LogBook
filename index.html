@@ -4,6 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FI Logbook</title>
+<script>
+(function() {
+  var root = document.documentElement;
+  var theme = 'auto';
+  var palette = 'warm';
+  var validThemes = { light: true, dark: true, auto: true };
+  var validPalettes = { warm: true, cuoio: true, inchiostro: true, petrolio: true };
+  try {
+    var storedTheme = localStorage.getItem('fi_theme');
+    var storedPalette = localStorage.getItem('fi_palette');
+    if (validThemes[storedTheme]) theme = storedTheme;
+    if (validPalettes[storedPalette]) palette = storedPalette;
+  } catch(e) {}
+  var prefersDark = false;
+  try {
+    prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch(e) {}
+  var resolvedTheme = theme === 'auto' ? (prefersDark ? 'dark' : 'light') : theme;
+  root.setAttribute('data-startup-theme', resolvedTheme);
+  root.setAttribute('data-startup-palette', palette);
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 /* Fallback fonts in case Google Fonts don't load */
@@ -79,6 +101,54 @@ body {
 
 /* ─── LAYOUT ─── */
 #app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: #f5f2ee; background: var(--bg); }
+
+/* ─── STARTUP SCREEN ─── */
+[data-startup-palette="warm"][data-startup-theme="light"] { --startup-bg:#f5f2ee; --startup-text:#2a2520; --startup-muted:#9c9590; --startup-accent:#7c6d5a; }
+[data-startup-palette="warm"][data-startup-theme="dark"] { --startup-bg:#1a1714; --startup-text:#e8e4dc; --startup-muted:#706860; --startup-accent:#c4a882; }
+[data-startup-palette="cuoio"][data-startup-theme="light"] { --startup-bg:#f5f1eb; --startup-text:#2a1c10; --startup-muted:#a08060; --startup-accent:#8a4a28; }
+[data-startup-palette="cuoio"][data-startup-theme="dark"] { --startup-bg:#1a100a; --startup-text:#eaddd0; --startup-muted:#806048; --startup-accent:#d08858; }
+[data-startup-palette="inchiostro"][data-startup-theme="light"] { --startup-bg:#f5f2ee; --startup-text:#141220; --startup-muted:#8080a0; --startup-accent:#283058; }
+[data-startup-palette="inchiostro"][data-startup-theme="dark"] { --startup-bg:#0e0e18; --startup-text:#e0e0f0; --startup-muted:#606090; --startup-accent:#8898d0; }
+[data-startup-palette="petrolio"][data-startup-theme="light"] { --startup-bg:#eef3f4; --startup-text:#0c1e22; --startup-muted:#587880; --startup-accent:#1a5060; }
+[data-startup-palette="petrolio"][data-startup-theme="dark"] { --startup-bg:#0a1618; --startup-text:#ccd8dc; --startup-muted:#386070; --startup-accent:#489098; }
+#startup-screen {
+  position: fixed; inset: 0; z-index: 2300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px; overflow: hidden;
+  background: #f5f2ee; background: var(--startup-bg, #f5f2ee);
+  color: #2a2520; color: var(--startup-text, #2a2520);
+  text-align: center;
+  transition: opacity 0.16s ease, visibility 0.16s ease;
+}
+#startup-screen.startup-exiting { opacity: 0; visibility: hidden; pointer-events: none; }
+.startup-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; transform: translateY(-1vh); }
+.startup-brand {
+  font-family: var(--font-serif); font-size: 38px; font-weight: 400;
+  font-style: italic; line-height: 1; letter-spacing: 0.01em;
+  color: #7c6d5a; color: var(--startup-accent, #7c6d5a);
+}
+.startup-subtitle {
+  font-family: var(--font-sans); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: #9c9590; color: var(--startup-muted, #9c9590);
+}
+.startup-progress {
+  width: 152px; height: 2px; margin-top: 14px; overflow: hidden;
+  border-radius: 999px;
+  background: rgba(124, 109, 90, 0.16);
+  background: color-mix(in srgb, var(--startup-accent, #7c6d5a) 18%, transparent);
+}
+.startup-progress-bar {
+  width: 42%; height: 100%; border-radius: inherit;
+  background: #7c6d5a; background: var(--startup-accent, #7c6d5a);
+  opacity: 0.72;
+  animation: startupLine 1.65s ease-in-out infinite;
+}
+@keyframes startupLine {
+  0% { transform: translateX(-120%); opacity: 0.28; }
+  45% { opacity: 0.72; }
+  100% { transform: translateX(260%); opacity: 0.28; }
+}
 
 /* ─── HEADER ─── */
 #header {
@@ -652,6 +722,16 @@ input[type=range]::-webkit-slider-thumb {
   .view { padding: 10px; }
   .btn { padding: 6px 10px; font-size: 11px; }
 }
+@media (max-width: 600px) {
+  #startup-screen { padding: 24px; }
+  .startup-brand { font-size: 30px; }
+  .startup-subtitle { font-size: 10px; letter-spacing: 0.13em; }
+  .startup-progress { width: 112px; margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #startup-screen { transition: none; }
+  .startup-progress-bar { animation: none; width: 100%; opacity: 0.45; }
+}
 
 /* ─── LANG SELECTOR ─── */
 .lang-btn {
@@ -1130,6 +1210,14 @@ input[type=range]::-webkit-slider-thumb {
 <body>
 <div id="app">
 
+<div id="startup-screen" role="status" aria-label="Opening FI Logbook">
+  <div class="startup-inner">
+    <div class="startup-brand">FI Logbook</div>
+    <div class="startup-subtitle">Feldenkrais · Functional Integration</div>
+    <div class="startup-progress" aria-hidden="true"><div class="startup-progress-bar"></div></div>
+  </div>
+</div>
+
 <div id="app-shell" style="display:none;flex-direction:column;height:100%;min-height:100vh;">
 <!-- HEADER -->
 <header id="header">
@@ -1473,7 +1561,7 @@ input[type=range]::-webkit-slider-thumb {
 </div>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" style="position:fixed;inset:0;background:#eef1f5;background:var(--bg);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+<div id="auth-screen" style="position:fixed;inset:0;background:#eef1f5;background:var(--bg);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
   <div style="width:100%;max-width:400px;">
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-family:var(--font-serif);font-size:28px;font-style:italic;color:var(--accent);margin-bottom:4px;">FI Logbook</div>
@@ -5887,11 +5975,21 @@ function clearRecoveryUrlState() {
   window.history.replaceState({}, document.title, cleanUrl);
 }
 
-async function handlePasswordRecoveryRedirect() {
+async function handlePasswordRecoveryRedirect(options = {}) {
+  const { revealAuth = true } = options;
   const state = getUrlRecoveryState();
   if (!state.isRecovery) return false;
 
-  showAuthScreen();
+  if (revealAuth) showAuthScreen();
+  else {
+    const as = document.getElementById('auth-screen');
+    const sh = document.getElementById('app-shell');
+    const bl = document.getElementById('btn-logout');
+    if (as) as.style.display = 'flex';
+    if (sh) sh.style.display = 'none';
+    if (bl) bl.style.display = 'none';
+    syncCredentialFieldVisibilityState();
+  }
   passwordRecoveryActive = true;
 
   if (state.hasError || !state.hasToken) {
@@ -5966,22 +6064,129 @@ async function showResetPassword() {
   } catch(e) { showAuthError(e.message); }
 }
 
-function showAuthScreen() {
+let startupHideTimer = null;
+let initialUiRoutingComplete = false;
+let initialAuthSucceeded = false;
+let initialUiRoutingAttempt = 0;
+
+function readStartupPreference(key, fallback, allowedValues) {
+  try {
+    const value = localStorage.getItem(key);
+    return allowedValues.includes(value) ? value : fallback;
+  } catch(e) {
+    console.warn('[startup] preference read failed:', key, e);
+    return fallback;
+  }
+}
+
+function isStartupScreenVisible() {
+  const screen = document.getElementById('startup-screen');
+  return !!screen && screen.style.display !== 'none' && !screen.classList.contains('startup-exiting');
+}
+
+function showStartupScreen() {
+  const screen = document.getElementById('startup-screen');
+  if (!screen) return;
+  if (startupHideTimer) { clearTimeout(startupHideTimer); startupHideTimer = null; }
+  screen.classList.remove('startup-exiting');
+  screen.style.display = 'flex';
+}
+
+function hideStartupScreen() {
+  const screen = document.getElementById('startup-screen');
+  if (!screen || screen.style.display === 'none') return;
+  if (startupHideTimer) clearTimeout(startupHideTimer);
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) {
+    screen.style.display = 'none';
+    screen.classList.remove('startup-exiting');
+    return;
+  }
+  screen.classList.add('startup-exiting');
+  startupHideTimer = setTimeout(() => {
+    screen.style.display = 'none';
+    screen.classList.remove('startup-exiting');
+    startupHideTimer = null;
+  }, 180);
+}
+
+async function resolveInitialUiState() {
+  const attemptId = ++initialUiRoutingAttempt;
+  initialUiRoutingComplete = false;
+  initialAuthSucceeded = false;
+  showStartupScreen();
+
+  const isActiveAttempt = () => attemptId === initialUiRoutingAttempt && !initialUiRoutingComplete;
+
+  let authFallbackTimer = setTimeout(() => {
+    if (!isActiveAttempt() || initialAuthSucceeded || passwordRecoveryActive) return;
+    showAuthScreen({ hideStartup: true });
+    initialUiRoutingComplete = true;
+  }, 12000);
+
+  try {
+    const recoveryRedirectHandled = await handlePasswordRecoveryRedirect({ revealAuth: false });
+    if (!isActiveAttempt()) return;
+    if (recoveryRedirectHandled || passwordRecoveryActive) {
+      clearTimeout(authFallbackTimer);
+      initialUiRoutingComplete = true;
+      hideStartupScreen();
+      return;
+    }
+
+    _loadTokens();
+    if (!_accessToken) {
+      clearTimeout(authFallbackTimer);
+      if (!isActiveAttempt()) return;
+      showAuthScreen({ hideStartup: true });
+      initialUiRoutingComplete = true;
+      return;
+    }
+
+    const user = await authGetUser();
+    if (!isActiveAttempt()) return;
+    if (user && !user.error) {
+      initialAuthSucceeded = true;
+      clearTimeout(authFallbackTimer);
+      await onSignedIn(user);
+      if (!isActiveAttempt()) return;
+      initialUiRoutingComplete = true;
+      hideStartupScreen();
+      return;
+    }
+
+    clearTimeout(authFallbackTimer);
+    if (!isActiveAttempt()) return;
+    showAuthScreen({ hideStartup: true });
+    initialUiRoutingComplete = true;
+  } catch(initErr) {
+    clearTimeout(authFallbackTimer);
+    if (!isActiveAttempt()) return;
+    showAuthScreen({ hideStartup: true });
+    initialUiRoutingComplete = true;
+  }
+}
+
+function showAuthScreen(options = {}) {
+  const { clearCredentials = true, hideStartup = false } = options;
   const as = document.getElementById('auth-screen');
   const sh = document.getElementById('app-shell');
   const bl = document.getElementById('btn-logout');
   if (as) as.style.display = 'flex';
   if (sh) sh.style.display = 'none';
   if (bl) bl.style.display = 'none';
-  setTimeout(() => {
-    const em = document.getElementById('auth-email');
-    const pw = document.getElementById('auth-password');
-    const cf = document.getElementById('auth-confirm');
-    if (em) em.value = '';
-    if (pw) pw.value = '';
-    if (cf) cf.value = '';
-  }, 50);
+  if (clearCredentials) {
+    setTimeout(() => {
+      const em = document.getElementById('auth-email');
+      const pw = document.getElementById('auth-password');
+      const cf = document.getElementById('auth-confirm');
+      if (em) em.value = '';
+      if (pw) pw.value = '';
+      if (cf) cf.value = '';
+    }, 50);
+  }
   syncCredentialFieldVisibilityState();
+  if (hideStartup) hideStartupScreen();
 }
 
 function hideAuthScreen() {
@@ -6023,71 +6228,44 @@ function metricLabel(k) {
 // INIT
 // ════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
-  showAuthScreen();
-
-  // Load language preference
-  currentLang = localStorage.getItem('fi_lang') || 'it';
-  document.getElementById('html-root').lang = currentLang;
-
-  themeMode = localStorage.getItem('fi_theme') || 'auto';
-  currentPalette = localStorage.getItem('fi_palette') || 'warm';
-  applyTheme();
-  applyTranslations();
-  handleCheckoutUrlState();
-  renderHelpContent();
-
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
-
-  const loadingEl = document.getElementById('auth-loading');
-  if (loadingEl) loadingEl.style.display = 'none';
-
-  document.getElementById('view-profile').addEventListener('click', function(e) {
-    const btn = e.target.closest('button[data-sid]');
-    if (!btn) return;
-    e.stopPropagation();
-    const sid = btn.getAttribute('data-sid');
-    const act = btn.getAttribute('data-act');
-    if (act === 'edit') editSession(sid);
-    if (act === 'dup')  duplicateSession(sid);
-    if (act === 'del')  deleteSession(sid);
-  });
-  const clientsView = document.getElementById('view-clients');
-  if (clientsView) {
-    clientsView.addEventListener('pointerdown', () => clearNewClientHighlight(), { passive: true });
-    clientsView.addEventListener('keydown', () => clearNewClientHighlight());
-  }
-
-  const recoveryRedirectHandled = await handlePasswordRecoveryRedirect();
-
-  const safetyTimer = setTimeout(() => {
-    const authScreen = document.getElementById('auth-screen');
-    const appShell = document.getElementById('app-shell');
-    if (authScreen && authScreen.style.display !== 'flex' && appShell && appShell.style.display === 'none') {
-      showAuthScreen();
-    }
-  }, 4000);
-
   try {
-    _loadTokens();
-    if (recoveryRedirectHandled || passwordRecoveryActive) {
-      clearTimeout(safetyTimer);
-      showAuthScreen();
-    } else if (_accessToken) {
-      const user = await authGetUser();
-      if (user && !user.error) {
-        clearTimeout(safetyTimer);
-        await onSignedIn(user);
-      } else {
-        clearTimeout(safetyTimer);
-        showAuthScreen();
-      }
-    } else {
-      clearTimeout(safetyTimer);
-      showAuthScreen();
+    // Load language preference
+    currentLang = readStartupPreference('fi_lang', 'it', ['it','en']);
+    document.getElementById('html-root').lang = currentLang;
+
+    themeMode = readStartupPreference('fi_theme', 'auto', ['light','dark','auto']);
+    currentPalette = readStartupPreference('fi_palette', 'warm', ['warm','cuoio','inchiostro','petrolio']);
+    applyTheme();
+    applyTranslations();
+    handleCheckoutUrlState();
+    renderHelpContent();
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+    const loadingEl = document.getElementById('auth-loading');
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    document.getElementById('view-profile').addEventListener('click', function(e) {
+      const btn = e.target.closest('button[data-sid]');
+      if (!btn) return;
+      e.stopPropagation();
+      const sid = btn.getAttribute('data-sid');
+      const act = btn.getAttribute('data-act');
+      if (act === 'edit') editSession(sid);
+      if (act === 'dup')  duplicateSession(sid);
+      if (act === 'del')  deleteSession(sid);
+    });
+    const clientsView = document.getElementById('view-clients');
+    if (clientsView) {
+      clientsView.addEventListener('pointerdown', () => clearNewClientHighlight(), { passive: true });
+      clientsView.addEventListener('keydown', () => clearNewClientHighlight());
     }
-  } catch(initErr) {
-    clearTimeout(safetyTimer);
-    showAuthScreen();
+
+    await resolveInitialUiState();
+  } catch(initSetupErr) {
+    console.error('[startup] initialization failed:', initSetupErr);
+    initialUiRoutingComplete = true;
+    showAuthScreen({ hideStartup: true });
   }
 });
 
