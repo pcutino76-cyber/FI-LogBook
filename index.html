@@ -905,6 +905,7 @@ input[type=range]::-webkit-slider-thumb {
   .session-card-actions .btn {
     width: 100%;
     min-width: 0;
+    min-height: 40px;
     justify-content: center;
   }
   .session-card-actions .btn[data-act="del"] {
@@ -1223,21 +1224,27 @@ input[type=range]::-webkit-slider-thumb {
   #header-controls {
     grid-area: controls;
     justify-content: flex-start;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 2px;
-    -webkit-overflow-scrolling: touch;
+    flex-wrap: wrap;
+    row-gap: 6px;
+    overflow-x: visible;
+    overflow-y: visible;
+    padding-bottom: 0;
     min-height: 0;
   }
-  #header-controls {
-    scrollbar-width: none;
-  }
-  #header-controls::-webkit-scrollbar {
-    display: none;
-  }
   #header-controls > * {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+  }
+  #theme-btn,
+  #header-lang-toggle .lang-btn,
+  #header-user-badge,
+  #btn-logout {
+    min-height: 36px;
+  }
+  #header-lang-toggle .lang-btn,
+  #btn-logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   #header-user-badge {
     max-width: 90px;
@@ -1254,13 +1261,32 @@ input[type=range]::-webkit-slider-thumb {
     gap: 6px;
   }
   #nav {
+    flex: 1 1 auto;
     min-width: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: visible;
   }
-  #nav .nav-btn,
+  #nav .nav-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+  }
   #mobile-more-btn {
     flex: 0 0 auto;
+  }
+
+
+  .client-actions .btn {
+    min-height: 38px;
+    min-width: 38px;
+    padding: 7px 10px;
+    justify-content: center;
+  }
+  .trash-card .btn {
+    min-height: 40px;
+    padding: 8px 12px;
+    justify-content: center;
   }
 
   #view-all-sessions > div > div:first-child {
