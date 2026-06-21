@@ -24,6 +24,32 @@
   var resolvedTheme = theme === 'auto' ? (prefersDark ? 'dark' : 'light') : theme;
   root.setAttribute('data-startup-theme', resolvedTheme);
   root.setAttribute('data-startup-palette', palette);
+
+  var hasSelectedAccessToken = false;
+  var canReadSelectedAuthStorage = true;
+  try {
+    var rememberMe = localStorage.getItem('fi_remember_me') !== '0';
+    var tokenStore = rememberMe ? localStorage : sessionStorage;
+    hasSelectedAccessToken = !!(tokenStore.getItem('fi_access_token') || '').trim();
+  } catch(e) { canReadSelectedAuthStorage = false; }
+
+  var hasRecoveryState = false;
+  try {
+    var params = new URLSearchParams(window.location.search || '');
+    var hash = (window.location.hash || '').replace(/^#/, '');
+    var hashParams = new URLSearchParams(hash);
+    hashParams.forEach(function(value, key) { params.set(key, value); });
+    var type = params.get('type');
+    var error = params.get('error') || params.get('error_code') || params.get('error_description');
+    var hasRecoveryType = type === 'recovery';
+    var hasRecoveryToken = hasRecoveryType && params.get('access_token');
+    var hasRecoveryError = !!error && (hasRecoveryType || /recover|recovery|reset|expired|invalid/i.test(window.location.href));
+    hasRecoveryState = hasRecoveryType || !!hasRecoveryToken || hasRecoveryError;
+  } catch(e) {}
+
+  if (canReadSelectedAuthStorage && !hasSelectedAccessToken && !hasRecoveryState) {
+    root.setAttribute('data-initial-route', 'anonymous-login');
+  }
 })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
@@ -120,6 +146,7 @@ body {
   text-align: center;
   transition: opacity 0.16s ease, visibility 0.16s ease;
 }
+html[data-initial-route="anonymous-login"] #startup-screen { display: none !important; }
 #startup-screen.startup-exiting { opacity: 0; visibility: hidden; pointer-events: none; }
 .startup-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; transform: translateY(-1vh); }
 .startup-brand {
@@ -183,7 +210,9 @@ body {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+  transition: color var(--transition), opacity var(--transition);
 }
+#header-brand:hover { color: var(--accent2); opacity: 0.86; }
 #header-brand:focus-visible {
   outline: 2px solid var(--accent2);
   outline-offset: 4px;
@@ -1790,6 +1819,7 @@ const STRINGS = {
   en: {
     // Header
     headerSubtitle: 'Feldenkrais · Functional Integration',
+    brandHomeLabel: 'Back to Home',
     // Nav
     navClients: 'Clients', navSessions: 'Sessions', navTrash: 'Trash',
     navBackup: 'Backup', navSettings: 'Settings', navSearch: 'Search', navHelp: 'Help',
@@ -2004,6 +2034,7 @@ const STRINGS = {
   },
   it: {
     headerSubtitle: 'Feldenkrais · Integrazione Funzionale',
+    brandHomeLabel: 'Torna alla Home',
     navClients: 'Allievi', navSessions: 'Sessioni', navTrash: 'Cestino',
     navBackup: 'Backup', navSettings: 'Impostazioni', navSearch: 'Cerca', navHelp: 'Guida',
     btnLogout: 'Disconnetti',
@@ -2274,6 +2305,11 @@ function applyTranslations() {
 
   // Header
   document.getElementById('header-subtitle').textContent = s.headerSubtitle;
+  const headerBrand = document.getElementById('header-brand');
+  if (headerBrand) {
+    headerBrand.setAttribute('title', s.brandHomeLabel);
+    headerBrand.setAttribute('aria-label', s.brandHomeLabel);
+  }
 
   // Home view
   document.getElementById('home-title').textContent = s.homeTitle;
@@ -2502,7 +2538,7 @@ function renderHelpContent() {
   const isIT = currentLang === 'it';
   // CLOSED TEST REFINEMENT: make limits, trust, and existing navigation tools easier to understand
   const sections = isIT ? [
-    { title: 'Per iniziare', body: 'Crea un cliente nella scheda <strong>Allievi</strong>. Puoi aggiungere nome, tag, baseline e note generali. Dopo il salvataggio, apri il profilo del cliente per <strong>creare e gestire sessioni</strong>, vedere metriche, consultare la cronologia e seguire l’andamento nel tempo.' },
+    { title: 'Per iniziare', body: 'Crea un cliente nella scheda <strong>Allievi</strong>. Puoi aggiungere nome, tag, baseline e note generali. Dopo il salvataggio, apri il profilo del cliente per <strong>creare e gestire sessioni</strong>, vedere metriche, consultare la cronologia e seguire l’andamento nel tempo. Puoi tornare alla Home selezionando il marchio FI Logbook nell’intestazione.' },
     { title: 'Piano free e limiti', body: 'Nel piano free puoi avere fino a <strong>5 clienti nello spazio attivo</strong>, fino a <strong>7 schede cliente create</strong> e fino a <strong>7 sessioni per cliente</strong>, per un <strong>totale complessivo di 35 sessioni create</strong>. Spostare un cliente in <strong>Archivio</strong> libera uno slot nello spazio attivo, ma <strong>non restituisce quota free già creata</strong>. Anche cancellare una sessione o una scheda non ripristina la quota già consumata. <strong>Il piano premium è pensato per un uso continuativo del lavoro senza questi limiti.</strong>' },
     { title: 'Archivio e Cestino', body: 'La scheda <strong>Archivio</strong> serve a togliere clienti dallo spazio di lavoro attivo senza eliminarli. La scheda <strong>Cestino</strong> contiene invece gli elementi eliminati, con opzioni di ripristino o eliminazione definitiva.' },
     { title: 'Ricerca e Sessioni', body: '<strong>Cerca</strong> ti aiuta a trovare rapidamente nomi, note, etichette e obiettivi in tutto lo spazio di lavoro. La vista <strong>Sessioni</strong> raccoglie invece tutte le sessioni dei clienti in ordine di data, così puoi rivederle più velocemente e filtrare per allievo quando serve.' },
@@ -2511,7 +2547,7 @@ function renderHelpContent() {
     { title: 'Backup ed esportazioni', body: '<strong>Export JSON</strong> è il backup completo dello spazio di lavoro ed è il formato consigliato per conservare tutti i dati. <strong>Export CSV</strong> è un riepilogo sintetico delle sessioni pensato per analisi rapide su foglio di calcolo. <strong>Report Cliente PDF</strong> è la scheda completa e stampabile del cliente, disponibile nel piano premium e generabile dal profilo cliente.' },
     { title: 'Dati, backup e uso', body: 'Ogni account accede ai dati del proprio spazio di lavoro. Durante il test è consigliato usare <strong>iniziali o codici cliente</strong> invece di dati identificativi completi quando possibile. I dati restano disponibili localmente e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
   ] : [
-    { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, check session history, and follow the process over time.' },
+    { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, check session history, and follow the process over time. You can return to Home by selecting the FI Logbook brand in the header.' },
     { title: 'Free plan and limits', body: 'The free plan allows up to <strong>5 clients in the active workspace</strong>, up to <strong>7 client cards created</strong>, and up to <strong>7 sessions per client</strong>, for a <strong>total of 35 created sessions</strong>. Moving a client to <strong>Archive</strong> frees an active workspace slot, but <strong>does not restore created free quota</strong>. Deleting a session or a client card also does not restore quota that has already been used. <strong>The premium plan is designed for ongoing professional use without these limits.</strong>' },
     { title: 'Archive & Trash', body: 'The <strong>Archive</strong> tab removes clients from the active workspace without deleting them. The <strong>Trash</strong> tab contains deleted items, with restore or permanent delete.' },
     { title: 'Search & Sessions', body: '<strong>Search</strong> helps you quickly find names, notes, tags, and goals across the whole workspace. The <strong>Sessions</strong> view gathers all client sessions in date order, making it easier to review work across clients and filter by client when needed.' },
@@ -6236,7 +6272,8 @@ async function resolveInitialUiState() {
   const attemptId = ++initialUiRoutingAttempt;
   initialUiRoutingComplete = false;
   initialAuthSucceeded = false;
-  showStartupScreen();
+  const isKnownAnonymousRoute = document.documentElement.getAttribute('data-initial-route') === 'anonymous-login';
+  if (!isKnownAnonymousRoute) showStartupScreen();
 
   const isActiveAttempt = () => attemptId === initialUiRoutingAttempt && !initialUiRoutingComplete;
 
