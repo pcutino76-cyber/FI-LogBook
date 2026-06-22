@@ -65,7 +65,7 @@ async function updateUserAppMetadata(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   updates: MetadataUpdates,
-): Promise<void> {
+): Promise<MetadataUpdates> {
   const { data: existing, error: getError } = await supabase.auth.admin.getUserById(userId);
   if (getError || !existing?.user) throw new Error("Failed to load user");
 
@@ -77,6 +77,30 @@ async function updateUserAppMetadata(
   });
 
   if (updateError) throw new Error("Failed to update user metadata");
+
+  return {
+    plan_tier: nextMetadata.plan_tier === "premium" ? "premium" : "free",
+    subscription_status: typeof nextMetadata.subscription_status === "string" ? nextMetadata.subscription_status : undefined,
+    stripe_customer_id: typeof nextMetadata.stripe_customer_id === "string" ? nextMetadata.stripe_customer_id : undefined,
+    stripe_subscription_id: typeof nextMetadata.stripe_subscription_id === "string" ? nextMetadata.stripe_subscription_id : undefined,
+  };
+}
+
+async function upsertAccountEntitlement(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  trustedMetadata: MetadataUpdates,
+): Promise<void> {
+  const { error } = await supabase.from("account_entitlements").upsert({
+    user_id: userId,
+    plan_tier: trustedMetadata.plan_tier === "premium" ? "premium" : "free",
+    subscription_status: trustedMetadata.subscription_status ?? null,
+    stripe_customer_id: trustedMetadata.stripe_customer_id ?? null,
+    stripe_subscription_id: trustedMetadata.stripe_subscription_id ?? null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+
+  if (error) throw new Error("Failed to update account entitlement");
 }
 
 Deno.serve(async (req) => {
@@ -130,12 +154,14 @@ Deno.serve(async (req) => {
         const userId = session?.metadata?.supabase_user_id;
 
         if (userId) {
-          await updateUserAppMetadata(supabase, userId, {
+          const updates: MetadataUpdates = {
             plan_tier: "premium",
             stripe_customer_id: typeof session.customer === "string" ? session.customer : "",
             stripe_subscription_id: typeof session.subscription === "string" ? session.subscription : "",
             subscription_status: "active",
-          });
+          };
+          const trustedMetadata = await updateUserAppMetadata(supabase, userId, updates);
+          await upsertAccountEntitlement(supabase, userId, trustedMetadata);
         }
         break;
       }
@@ -158,7 +184,8 @@ Deno.serve(async (req) => {
             updates.plan_tier = "free";
           }
 
-          await updateUserAppMetadata(supabase, userId, updates);
+          const trustedMetadata = await updateUserAppMetadata(supabase, userId, updates);
+          await upsertAccountEntitlement(supabase, userId, trustedMetadata);
         }
         break;
       }
@@ -168,12 +195,14 @@ Deno.serve(async (req) => {
         const userId = subscription?.metadata?.supabase_user_id;
 
         if (userId) {
-          await updateUserAppMetadata(supabase, userId, {
+          const updates: MetadataUpdates = {
             plan_tier: "free",
             stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : "",
             stripe_subscription_id: typeof subscription.id === "string" ? subscription.id : "",
             subscription_status: "canceled",
-          });
+          };
+          const trustedMetadata = await updateUserAppMetadata(supabase, userId, updates);
+          await upsertAccountEntitlement(supabase, userId, trustedMetadata);
         }
         break;
       }
