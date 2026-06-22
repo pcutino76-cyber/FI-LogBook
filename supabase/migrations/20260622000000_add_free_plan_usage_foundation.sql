@@ -88,31 +88,10 @@ on conflict (user_id) do update set
   stripe_subscription_id = excluded.stripe_subscription_id,
   updated_at = now();
 
--- Backfill represented sessions that already exist when this migration runs.
-insert into public.session_usage_ledger (
-  user_id,
-  session_id,
-  client_id,
-  consumed_at,
-  source,
-  migration_metadata
-)
-select
-  s.user_id,
-  s.id::text,
-  s."clientId"::text,
-  now(),
-  'migration_existing_session',
-  jsonb_build_object('migration', '20260622000000_add_free_plan_usage_foundation')
-from public.sessions s
-where s.user_id is not null
-  and nullif(pg_catalog.btrim(s.id::text), '') is not null
-  and nullif(pg_catalog.btrim(s."clientId"::text), '') is not null
-on conflict (user_id, session_id) do nothing;
-
--- Continuity bridge while the current frontend still inserts sessions directly:
--- record represented sessions created after the backfill without enforcing limits.
--- Later transactional session-creation RPC work will add authoritative limit checks.
+-- Continuity bridge while the current frontend still inserts sessions directly.
+-- Attach this trigger before reconciliation to avoid a migration-time gap.
+-- Later transactional session-creation RPC work will replace direct frontend
+-- creation as the authoritative enforcement path.
 create or replace function public.record_session_usage_ledger_insert()
 returns trigger
 language plpgsql
@@ -155,6 +134,28 @@ create trigger record_session_usage_ledger_insert
   after insert on public.sessions
   for each row
   execute function public.record_session_usage_ledger_insert();
+
+-- Backfill reconciles all represented sessions existing once migration access is established.
+insert into public.session_usage_ledger (
+  user_id,
+  session_id,
+  client_id,
+  consumed_at,
+  source,
+  migration_metadata
+)
+select
+  s.user_id,
+  s.id::text,
+  s."clientId"::text,
+  now(),
+  'migration_existing_session',
+  jsonb_build_object('migration', '20260622000000_add_free_plan_usage_foundation')
+from public.sessions s
+where s.user_id is not null
+  and nullif(pg_catalog.btrim(s.id::text), '') is not null
+  and nullif(pg_catalog.btrim(s."clientId"::text), '') is not null
+on conflict (user_id, session_id) do nothing;
 
 create or replace function public.get_account_access_state()
 returns table (
