@@ -88,6 +88,7 @@ on conflict (user_id) do update set
   stripe_subscription_id = excluded.stripe_subscription_id,
   updated_at = now();
 
+-- Backfill represented sessions that already exist when this migration runs.
 insert into public.session_usage_ledger (
   user_id,
   session_id,
@@ -108,6 +109,52 @@ where s.user_id is not null
   and nullif(pg_catalog.btrim(s.id::text), '') is not null
   and nullif(pg_catalog.btrim(s."clientId"::text), '') is not null
 on conflict (user_id, session_id) do nothing;
+
+-- Continuity bridge while the current frontend still inserts sessions directly:
+-- record represented sessions created after the backfill without enforcing limits.
+-- Later transactional session-creation RPC work will add authoritative limit checks.
+create or replace function public.record_session_usage_ledger_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+begin
+  if new.user_id is not null
+    and nullif(pg_catalog.btrim(new.id::text), '') is not null
+    and nullif(pg_catalog.btrim(new."clientId"::text), '') is not null
+  then
+    insert into public.session_usage_ledger (
+      user_id,
+      session_id,
+      client_id,
+      consumed_at,
+      source,
+      migration_metadata
+    ) values (
+      new.user_id,
+      new.id::text,
+      new."clientId"::text,
+      now(),
+      'session_insert',
+      pg_catalog.jsonb_build_object('trigger', 'record_session_usage_ledger_insert')
+    )
+    on conflict (user_id, session_id) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.record_session_usage_ledger_insert() from public;
+revoke all on function public.record_session_usage_ledger_insert() from anon;
+revoke all on function public.record_session_usage_ledger_insert() from authenticated;
+
+drop trigger if exists record_session_usage_ledger_insert on public.sessions;
+create trigger record_session_usage_ledger_insert
+  after insert on public.sessions
+  for each row
+  execute function public.record_session_usage_ledger_insert();
 
 create or replace function public.get_account_access_state()
 returns table (
