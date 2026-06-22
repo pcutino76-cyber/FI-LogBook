@@ -129,33 +129,49 @@ revoke all on function public.record_session_usage_ledger_insert() from public;
 revoke all on function public.record_session_usage_ledger_insert() from anon;
 revoke all on function public.record_session_usage_ledger_insert() from authenticated;
 
-drop trigger if exists record_session_usage_ledger_insert on public.sessions;
-create trigger record_session_usage_ledger_insert
-  after insert on public.sessions
-  for each row
-  execute function public.record_session_usage_ledger_insert();
+-- Existing FI Logbook production environments already contain the legacy
+-- public.sessions table. Fresh environments without that legacy table skip this
+-- bridge safely; a future canonical base-schema migration must attach and
+-- reconcile this bridge when it introduces public.sessions.
+do $$
+begin
+  if pg_catalog.to_regclass('public.sessions') is not null then
+    execute 'drop trigger if exists record_session_usage_ledger_insert on public.sessions';
 
--- Backfill reconciles all represented sessions existing once migration access is established.
-insert into public.session_usage_ledger (
-  user_id,
-  session_id,
-  client_id,
-  consumed_at,
-  source,
-  migration_metadata
-)
-select
-  s.user_id,
-  s.id::text,
-  s."clientId"::text,
-  now(),
-  'migration_existing_session',
-  jsonb_build_object('migration', '20260622000000_add_free_plan_usage_foundation')
-from public.sessions s
-where s.user_id is not null
-  and nullif(pg_catalog.btrim(s.id::text), '') is not null
-  and nullif(pg_catalog.btrim(s."clientId"::text), '') is not null
-on conflict (user_id, session_id) do nothing;
+    -- Attach the trigger before reconciliation to avoid a migration-time gap.
+    execute 'create trigger record_session_usage_ledger_insert
+      after insert on public.sessions
+      for each row
+      execute function public.record_session_usage_ledger_insert()';
+
+    -- Backfill reconciles all represented sessions existing once migration access is established.
+    execute $sql$
+      insert into public.session_usage_ledger (
+        user_id,
+        session_id,
+        client_id,
+        consumed_at,
+        source,
+        migration_metadata
+      )
+      select
+        s.user_id,
+        s.id::text,
+        s."clientId"::text,
+        now(),
+        'migration_existing_session',
+        jsonb_build_object('migration', '20260622000000_add_free_plan_usage_foundation')
+      from public.sessions s
+      where s.user_id is not null
+        and nullif(pg_catalog.btrim(s.id::text), '') is not null
+        and nullif(pg_catalog.btrim(s."clientId"::text), '') is not null
+      on conflict (user_id, session_id) do nothing
+    $sql$;
+  else
+    raise notice 'Skipping FI Logbook session usage trigger attachment and ledger reconciliation because legacy table public.sessions is absent.';
+  end if;
+end;
+$$;
 
 create or replace function public.get_account_access_state()
 returns table (
