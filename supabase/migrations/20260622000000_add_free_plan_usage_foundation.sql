@@ -50,19 +50,16 @@ alter table public.session_usage_ledger enable row level security;
 revoke all on table public.account_entitlements from public;
 revoke all on table public.account_entitlements from anon;
 revoke all on table public.account_entitlements from authenticated;
-revoke all on table public.account_entitlements from service_role;
 
 revoke all on table public.session_usage_ledger from public;
 revoke all on table public.session_usage_ledger from anon;
 revoke all on table public.session_usage_ledger from authenticated;
-revoke all on table public.session_usage_ledger from service_role;
 
 grant select, insert, update on table public.account_entitlements to service_role;
 
 revoke all on function public.set_account_entitlements_updated_at() from public;
 revoke all on function public.set_account_entitlements_updated_at() from anon;
 revoke all on function public.set_account_entitlements_updated_at() from authenticated;
-revoke all on function public.set_account_entitlements_updated_at() from service_role;
 
 -- Service-role webhook writes use explicit table privileges and bypass RLS.
 -- Browser clients receive entitlement and
@@ -131,7 +128,6 @@ $$;
 revoke all on function public.record_session_usage_ledger_insert() from public;
 revoke all on function public.record_session_usage_ledger_insert() from anon;
 revoke all on function public.record_session_usage_ledger_insert() from authenticated;
-revoke all on function public.record_session_usage_ledger_insert() from service_role;
 
 -- Existing FI Logbook production environments already contain the legacy
 -- public.sessions table. Fresh environments without that legacy table skip this
@@ -232,5 +228,4 @@ $$;
 
 revoke all on function public.get_account_access_state() from public;
 revoke all on function public.get_account_access_state() from anon;
-revoke all on function public.get_account_access_state() from service_role;
 grant execute on function public.get_account_access_state() to authenticated;
