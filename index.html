@@ -2565,7 +2565,7 @@ function renderHelpContent() {
   // CLOSED TEST REFINEMENT: make limits, trust, and existing navigation tools easier to understand
   const sections = isIT ? [
     { title: 'Per iniziare', body: 'Crea un cliente nella scheda <strong>Allievi</strong>. Puoi aggiungere nome, tag, baseline e note generali. Dopo il salvataggio, apri il profilo del cliente per <strong>creare e gestire sessioni</strong>, vedere metriche, consultare la cronologia e seguire l’andamento nel tempo. Puoi tornare alla Home selezionando il marchio FI Logbook nell’intestazione.' },
-    { title: 'Piano free e limiti', body: 'Nel piano free puoi avere fino a <strong>5 clienti nello spazio attivo</strong>, fino a <strong>7 schede cliente create</strong> e fino a <strong>7 sessioni per cliente</strong>, per un <strong>totale complessivo di 35 sessioni create</strong>. Spostare un cliente in <strong>Archivio</strong> libera uno slot nello spazio attivo, ma <strong>non restituisce quota free già creata</strong>. Anche cancellare una sessione o una scheda non ripristina la quota già consumata. <strong>Il piano premium è pensato per un uso continuativo del lavoro senza questi limiti.</strong>' },
+    { title: 'Piano free e limiti', body: 'Nel piano free puoi avere fino a <strong>5 clienti nello spazio attivo</strong>, fino a <strong>7 schede cliente create</strong> e fino a <strong>5 sessioni per cliente</strong>, per un <strong>totale complessivo di 35 sessioni create</strong>. Spostare un cliente in <strong>Archivio</strong> libera uno slot nello spazio attivo, ma <strong>non restituisce quota free già creata</strong>. Anche cancellare una sessione o una scheda non ripristina la quota già consumata. <strong>Il piano premium è pensato per un uso continuativo del lavoro senza questi limiti.</strong>' },
     { title: 'Archivio e Cestino', body: 'La scheda <strong>Archivio</strong> serve a togliere clienti dallo spazio di lavoro attivo senza eliminarli. La scheda <strong>Cestino</strong> contiene invece gli elementi eliminati, con opzioni di ripristino o eliminazione definitiva.' },
     { title: 'Ricerca e Sessioni', body: '<strong>Cerca</strong> ti aiuta a trovare rapidamente nomi, note, etichette e obiettivi in tutto lo spazio di lavoro. La vista <strong>Sessioni</strong> raccoglie invece tutte le sessioni dei clienti in ordine di data, così puoi rivederle più velocemente e filtrare per allievo quando serve.' },
     { title: 'Editor sessioni', body: 'Ogni sessione raccoglie osservazioni narrative, metriche, follow-up e strumenti visivi per mantenere continuità tra una seduta e la successiva.<br><br><strong>Informazioni sessione</strong><br>Qui puoi registrare data, durata, contesto della seduta, etichette e consenso verbale ottenuto. Serve a collocare la sessione nel suo contesto pratico.<br><br><strong>Griglia di Osservazione Strutturale</strong><br>La griglia ti permette di annotare rapidamente osservazioni per zona e condizione di lavoro, ad esempio in piedi, seduto o supino. Su schermi piccoli la griglia può scorrere orizzontalmente.<br><br><strong>Indagine Funzionale</strong><br>Questa sezione distingue tre livelli: <strong>Ipotesi funzionale</strong>, cioè ciò che pensi stia organizzando il pattern osservato; <strong>Vincoli principali</strong>, cioè ciò che limita movimento, respirazione o coordinazione; <strong>Strategia della lezione</strong>, cioè come scegli di lavorare nella sessione.<br><br><strong>Esiti e Follow-up</strong><br>Qui puoi annotare i cambiamenti immediati osservati, ciò che vuoi verificare nella prossima seduta e un eventuale <strong>momento Aha</strong>, cioè un insight significativo emerso durante il lavoro.<br><br><strong>Metriche sessione (0–10)</strong><br>Le metriche aiutano a rendere più leggibile l’andamento del percorso nel tempo. I punteggi non sostituiscono le <strong>note di lavoro</strong>, ma offrono una traccia sintetica di comfort, facilità di movimento, respiro e autonomia. Il campo <strong>Note sulle metriche</strong> serve a contestualizzare i punteggi.<br><br><strong>Integrazione a casa</strong><br>Questa sezione registra la pratica a casa suggerita per quella specifica sessione, insieme alla frequenza e a eventuali note aggiuntive.<br><br><strong>Mappa Scheletrica</strong><br>La mappa scheletrica serve a marcare zone rilevanti e collegamenti utili alla lettura della sessione. Puoi aggiungere marker, collegarli, annullare o ripetere azioni e confrontare la sessione corrente con quelle precedenti. Su schermi piccoli anche la tabella dei marker può scorrere orizzontalmente.<br><br><strong>Confrontare le mappe scheletriche recenti</strong><br>Quando le sessioni precedenti salvate contengono informazioni nella mappa scheletrica, sotto la mappa compare il selettore <strong>Mappa visualizzata</strong>. Permette di consultare la <strong>Sessione corrente</strong> oppure le due mappe precedenti più recenti che contengono marker o connessioni, con date complete e chiare per la lingua in uso.<br><br>Seleziona una data precedente per mantenere visibile quella mappa per tutto il tempo necessario, finché scegli un’altra data o torni a <strong>Sessione corrente</strong>. Le mappe storiche sono in sola lettura: puoi osservarle, ma non puoi modificarne marker, note o connessioni dall’editor della sessione corrente.<br><br>Seleziona <strong>Sessione corrente</strong> per tornare alla mappa modificabile. Il confronto non altera la sessione su cui stai lavorando e il salvataggio conserva sempre la mappa appartenente alla sessione corrente. Dopo un aggiornamento del browser viene riaperta la mappa salvata della sessione corrente, non l’anteprima storica. Le mappe più vecchie restano consultabili aprendo le rispettive sessioni salvate.<br><br>Usa questa funzione come riferimento visivo rapido per la riflessione professionale su attenzione, restrizioni, supporti, direzioni o relazioni annotate nelle sedute recenti; il significato delle differenze tra le mappe dipende sempre dal contesto delle sessioni.<br><br><strong>Cronologia sessioni</strong><br>La cronologia consente di rivedere rapidamente le sessioni precedenti e di mantenere continuità nel lavoro nel tempo.' },
@@ -2574,7 +2574,7 @@ function renderHelpContent() {
     { title: 'Dati, backup e uso', body: 'Ogni account accede ai dati del proprio spazio di lavoro. Durante il test è consigliato usare <strong>iniziali o codici cliente</strong> invece di dati identificativi completi quando possibile. I dati restano disponibili localmente e, quando la sincronizzazione cloud è attiva, possono essere sincronizzati anche online. Usa regolarmente <strong>Export JSON</strong> per tenere un backup locale indipendente.' }
   ] : [
     { title: 'Getting started', body: 'Create a client in the <strong>Clients</strong> tab. You can add name, tags, baseline snapshot, and general notes. After saving, open the client profile to <strong>create and manage sessions</strong>, review metrics, check session history, and follow the process over time. You can return to Home by selecting the FI Logbook brand in the header.' },
-    { title: 'Free plan and limits', body: 'The free plan allows up to <strong>5 clients in the active workspace</strong>, up to <strong>7 client cards created</strong>, and up to <strong>7 sessions per client</strong>, for a <strong>total of 35 created sessions</strong>. Moving a client to <strong>Archive</strong> frees an active workspace slot, but <strong>does not restore created free quota</strong>. Deleting a session or a client card also does not restore quota that has already been used. <strong>The premium plan is designed for ongoing professional use without these limits.</strong>' },
+    { title: 'Free plan and limits', body: 'The free plan allows up to <strong>5 clients in the active workspace</strong>, up to <strong>7 client cards created</strong>, and up to <strong>5 sessions per client</strong>, for a <strong>total of 35 created sessions</strong>. Moving a client to <strong>Archive</strong> frees an active workspace slot, but <strong>does not restore created free quota</strong>. Deleting a session or a client card also does not restore quota that has already been used. <strong>The premium plan is designed for ongoing professional use without these limits.</strong>' },
     { title: 'Archive & Trash', body: 'The <strong>Archive</strong> tab removes clients from the active workspace without deleting them. The <strong>Trash</strong> tab contains deleted items, with restore or permanent delete.' },
     { title: 'Search & Sessions', body: '<strong>Search</strong> helps you quickly find names, notes, tags, and goals across the whole workspace. The <strong>Sessions</strong> view gathers all client sessions in date order, making it easier to review work across clients and filter by client when needed.' },
     { title: 'Session editor', body: 'Each session brings together narrative observations, metrics, follow-up notes, and visual tools to support continuity from one lesson to the next.<br><br><strong>Session info</strong><br>This section records the date, duration, lesson context, tags, and verbal consent. It helps place the session in its practical context.<br><br><strong>Structural Observation Grid</strong><br>The grid lets you note observations by area and working condition, such as standing, sitting, or supine. On smaller screens, the grid may scroll horizontally.<br><br><strong>Functional Inquiry</strong><br>This section separates three levels: <strong>Functional Hypothesis</strong>, meaning what you think is organizing the observed pattern; <strong>Key Constraints</strong>, meaning what is limiting movement, breathing, or coordination; and <strong>Lesson Strategy</strong>, meaning how you choose to work during the session.<br><br><strong>Outcomes and Follow-up</strong><br>Here you can note immediate changes, what you want to revisit in the next lesson, and an <strong>Aha Moment</strong>, meaning a meaningful insight that emerged during the work.<br><br><strong>Session Metrics (0–10)</strong><br>Metrics make the client’s process easier to read over time. The scores do not replace your <strong>working notes</strong>, but provide a concise track of comfort, ease of movement, breath ease, and agency. <strong>Metric Notes</strong> can be used to add context to the scores.<br><br><strong>Home Integration</strong><br>This section records the home practice suggested for that specific session, together with the frequency and any additional notes.<br><br><strong>Skeletal Map</strong><br>The skeletal map helps mark relevant areas and useful connections within the session. You can place markers, connect them, undo or redo actions, and compare the current session with previous ones. On smaller screens, the marker table may also scroll horizontally.<br><br><strong>Comparing recent skeletal maps</strong><br>When earlier saved sessions contain skeletal-map information, the <strong>Map displayed</strong> selector appears below the map. It lets you view the <strong>Current session</strong> or the two most recent previous maps that contain markers or connections, with full dates shown clearly for the selected language.<br><br>Choose a previous date to keep that historical map visible for as long as you need, until you choose another date or return to <strong>Current session</strong>. Historical maps are read-only: they can be reviewed, but their markers, notes, and connections cannot be changed from the current session editor.<br><br>Select <strong>Current session</strong> to return to the editable map. The comparison does not alter the session you are working on, and saving always preserves the current session’s own map. After refreshing the browser, the saved current session map opens again, not the historical preview. Older maps can still be reviewed by opening their original saved sessions.<br><br>Use this as a quick visual reference for practitioner reflection on attention, restrictions, support, directions, or relevant relationships recorded across recent sessions; the meaning of any difference between maps depends on the context of the sessions.<br><br><strong>Session History</strong><br>The session history helps you quickly review previous sessions and maintain continuity over time.' },
@@ -2609,8 +2609,36 @@ let resetPasswordMessageKey = '';
 let resetPasswordMessageType = 'error';
 let syncTimeout   = null;
 let isOnline      = navigator.onLine;
+let deferredSyncRequested = false;
+let accountAccessRefreshSeq = 0;
+const ACCOUNT_ACCESS_ALLOWED_STATES = new Set(['premium_operational', 'free_normal']);
+const ACCOUNT_ACCESS_KNOWN_STATES = new Set(['premium_operational', 'free_normal', 'free_read_only']);
 
-window.addEventListener('online',  () => { isOnline = true;  updateSyncIndicator(); scheduleSyncToCloud(); });
+function createDefaultAccountAccessState(overrides = {}) {
+  return {
+    status: 'unknown',
+    userId: null,
+    planTier: null,
+    planState: null,
+    usage: {
+      distinctClientsUsed: 0,
+      sessionsCreatedTotal: 0,
+      maxSessionsCreatedPerClient: 0
+    },
+    limits: {
+      freeClientLimit: 7,
+      freeSessionsPerClientLimit: 5,
+      freeTotalSessionsLimit: 35
+    },
+    error: null,
+    loadedAt: null,
+    ...overrides
+  };
+}
+
+let accountAccessState = createDefaultAccountAccessState();
+
+window.addEventListener('online',  () => { handleOnlineReconnect(); });
 window.addEventListener('offline', () => { isOnline = false; updateSyncIndicator(); });
 
 // ── AUTH TOKEN PERSISTENCE ───────────────────────────
@@ -2704,6 +2732,145 @@ async function _sbUpsert(table, rows) {
   });
 }
 
+// ── ACCOUNT ACCESS STATE ────────────────────────────────
+function cancelPendingSyncToCloud() {
+  if (syncTimeout) {
+    clearTimeout(syncTimeout);
+    syncTimeout = null;
+  }
+}
+
+function resetAccountAccessState(userId = null, status = 'unknown') {
+  accountAccessState = createDefaultAccountAccessState({ status, userId });
+}
+
+function invalidateAccountAccessState() {
+  accountAccessRefreshSeq += 1;
+  resetAccountAccessState();
+}
+
+function isAccountAccessTemporarilyBlocked() {
+  return !!currentUser && (accountAccessState.status === 'unknown' || accountAccessState.status === 'loading');
+}
+
+function canSyncAccountData(expectedUserId = null) {
+  const userId = expectedUserId || currentUser?.id;
+  return !!currentUser &&
+    !!userId &&
+    currentUser.id === userId &&
+    accountAccessState.status === 'ready' &&
+    accountAccessState.userId === userId &&
+    ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState);
+}
+
+function rememberDeferredSyncIfStartupBlocked() {
+  if (isAccountAccessTemporarilyBlocked()) deferredSyncRequested = true;
+}
+
+function flushDeferredSyncIfAllowed() {
+  if (!deferredSyncRequested) return;
+  if (canSyncAccountData()) {
+    deferredSyncRequested = false;
+    scheduleSyncToCloud();
+  } else if (accountAccessState.status === 'ready' || accountAccessState.status === 'error') {
+    deferredSyncRequested = false;
+  }
+}
+
+function parseAccountAccessRpcResult(data) {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || (Array.isArray(data) && data.length !== 1)) throw new Error('Malformed account access response');
+  if (row.plan_tier !== 'free' && row.plan_tier !== 'premium') throw new Error('Unexpected account plan tier');
+  if (!ACCOUNT_ACCESS_KNOWN_STATES.has(row.plan_state)) throw new Error('Unexpected account plan state');
+  const isValidPlanStatePair =
+    (row.plan_tier === 'premium' && row.plan_state === 'premium_operational') ||
+    (row.plan_tier === 'free' && (row.plan_state === 'free_normal' || row.plan_state === 'free_read_only'));
+  if (!isValidPlanStatePair) throw new Error('Inconsistent account plan state');
+  const distinctClientsUsed = Number(row.distinct_clients_used);
+  const sessionsCreatedTotal = Number(row.sessions_created_total);
+  const maxSessionsCreatedPerClient = Number(row.max_sessions_created_per_client);
+  const freeClientLimit = Number(row.free_client_limit);
+  const freeSessionsPerClientLimit = Number(row.free_sessions_per_client_limit);
+  const freeTotalSessionsLimit = Number(row.free_total_sessions_limit);
+  const numericValues = [
+    distinctClientsUsed,
+    sessionsCreatedTotal,
+    maxSessionsCreatedPerClient,
+    freeClientLimit,
+    freeSessionsPerClientLimit,
+    freeTotalSessionsLimit
+  ];
+  if (numericValues.some(v => !Number.isFinite(v))) throw new Error('Malformed account access usage values');
+  return {
+    planTier: row.plan_tier,
+    planState: row.plan_state,
+    usage: {
+      distinctClientsUsed,
+      sessionsCreatedTotal,
+      maxSessionsCreatedPerClient
+    },
+    limits: {
+      freeClientLimit,
+      freeSessionsPerClientLimit,
+      freeTotalSessionsLimit
+    }
+  };
+}
+
+async function refreshAccountAccessState() {
+  if (!currentUser?.id) {
+    invalidateAccountAccessState();
+    deferredSyncRequested = false;
+    return accountAccessState;
+  }
+  const userId = currentUser.id;
+  const requestSeq = ++accountAccessRefreshSeq;
+  accountAccessState = createDefaultAccountAccessState({ status: 'loading', userId });
+  try {
+    const data = await _sbFetch('/rest/v1/rpc/get_account_access_state', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    if (!currentUser || currentUser.id !== userId || requestSeq !== accountAccessRefreshSeq) return accountAccessState;
+    const parsed = parseAccountAccessRpcResult(data);
+    accountAccessState = {
+      status: 'ready',
+      userId,
+      planTier: parsed.planTier,
+      planState: parsed.planState,
+      usage: parsed.usage,
+      limits: parsed.limits,
+      error: null,
+      loadedAt: new Date().toISOString()
+    };
+    flushDeferredSyncIfAllowed();
+    updateSyncIndicatorForAccountAccessState();
+    return accountAccessState;
+  } catch(e) {
+    if (!currentUser || currentUser.id !== userId || requestSeq !== accountAccessRefreshSeq) return accountAccessState;
+    accountAccessState = createDefaultAccountAccessState({
+      status: 'error',
+      userId,
+      error: e?.message || 'account_access_error',
+      loadedAt: new Date().toISOString()
+    });
+    deferredSyncRequested = false;
+    updateSyncIndicatorForAccountAccessState();
+    return accountAccessState;
+  }
+}
+
+async function handleOnlineReconnect() {
+  isOnline = true;
+  if (!currentUser || !_accessToken) {
+    resetSyncIndicator();
+    return;
+  }
+  updateSyncIndicator('syncing');
+  deferredSyncRequested = true;
+  await refreshAccountAccessState();
+}
+
 // ── AUTH FUNCTIONS ───────────────────────────────────
 async function authSignUp(email, password) {
   const data = await _sbAuth('/signup', { email, password });
@@ -2746,6 +2913,9 @@ async function authSignOut() {
   if (!confirmDiscardUnsavedSessionChanges()) return;
   clearSkeletalPreview();
   const signingOutUserId = currentUser?.id;
+  cancelPendingSyncToCloud();
+  deferredSyncRequested = false;
+  invalidateAccountAccessState();
   clearSavedNavigationContext(signingOutUserId);
   try { await Promise.race([
     _sbFetch('/auth/v1/logout', { method: 'POST' }),
@@ -2863,23 +3033,54 @@ function updateSyncIndicator(state) {
   }
 }
 
+function updateSyncIndicatorForAccountAccessState() {
+  if (!isOnline) {
+    updateSyncIndicator();
+    return;
+  }
+  if (accountAccessState.status === 'error') {
+    updateSyncIndicator('error');
+  } else if (accountAccessState.status === 'ready' && accountAccessState.planState === 'free_read_only') {
+    resetSyncIndicator();
+  }
+}
+
 // ── CLOUD SYNC ───────────────────────────────────────
 function scheduleSyncToCloud() {
+  if (!canSyncAccountData()) {
+    cancelPendingSyncToCloud();
+    rememberDeferredSyncIfStartupBlocked();
+    return;
+  }
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(syncToCloud, 1500);
 }
 
 async function syncToCloud() {
   if (!currentUser || !isOnline) return;
-  updateSyncIndicator('syncing');
+  const syncUserId = currentUser.id;
+  if (!canSyncAccountData(syncUserId)) {
+    cancelPendingSyncToCloud();
+    rememberDeferredSyncIfStartupBlocked();
+    return;
+  }
+  const clientPayload = appState.clients.map(c => ({ ...c, user_id: syncUserId }));
+  const sessionPayload = appState.sessions.map(s => ({ ...s, user_id: syncUserId }));
+  if (clientPayload.length === 0 && sessionPayload.length === 0) {
+    updateSyncIndicator('synced');
+    return;
+  }
   try {
-    const uid = currentUser.id;
-    if (appState.clients.length > 0) {
-      await _sbUpsert('clients', appState.clients.map(c => ({ ...c, user_id: uid })));
+    updateSyncIndicator('syncing');
+    if (clientPayload.length > 0) {
+      if (!canSyncAccountData(syncUserId)) return;
+      await _sbUpsert('clients', clientPayload);
     }
-    if (appState.sessions.length > 0) {
-      await _sbUpsert('sessions', appState.sessions.map(s => ({ ...s, user_id: uid })));
+    if (sessionPayload.length > 0) {
+      if (!canSyncAccountData(syncUserId)) return;
+      await _sbUpsert('sessions', sessionPayload);
     }
+    if (!canSyncAccountData(syncUserId)) return;
     updateSyncIndicator('synced');
   } catch(e) {
     updateSyncIndicator('error');
@@ -2954,7 +3155,7 @@ const STRUCT_COLS = ['Standing','Sitting','Supine'];
 // STATE
 // ════════════════════════════════════════════════════════
 const LEGACY_STORAGE_KEY = 'fi_logbook_v1';
-const FREE_PLAN_LIMITS = { activeClients: 5, totalClients: 7, sessionsPerClient: 7, totalSessions: 35 };
+const FREE_PLAN_LIMITS = { activeClients: 5, totalClients: 7, sessionsPerClient: 5, totalSessions: 35 };
 let appState = { clients: [], sessions: [], ui: {} };
 let currentClientId = null;
 let currentSessionId = null;
@@ -3341,10 +3542,11 @@ function loadState(options = {}) {
   }
 }
 
-function saveState() {
+function saveState(options = {}) {
+  const { localOnly = false } = options;
   try {
     localStorage.setItem(getUserScopedStorageKey(), JSON.stringify(appState));
-    scheduleSyncToCloud();
+    if (!localOnly) scheduleSyncToCloud();
   } catch(e) {
     showToast('Error saving data: ' + e.message, 'error');
   }
@@ -6385,11 +6587,16 @@ function hideAuthScreen() {
 async function onSignedIn(user, options = {}) {
   const { entry = 'restore' } = options;
   currentUser = user;
+  cancelPendingSyncToCloud();
+  deferredSyncRequested = false;
+  resetAccountAccessState(user.id, 'loading');
   resetUiResidualState();
   appState = { clients: [], sessions: [], ui: {} };
   updateHeaderUserBadge();
   updateSyncIndicator('syncing');
+  const accessRefreshPromise = refreshAccountAccessState();
   const loaded = await loadFromCloud();
+  accessRefreshPromise.catch(e => console.warn('[accountAccess] refresh skipped:', e?.message || e));
   if (!loaded) loadState({ allowLegacyMigration: true });
   if (entry === 'explicit-login') {
     showView('home', { skipUnsavedGuard: true });
@@ -6398,7 +6605,7 @@ async function onSignedIn(user, options = {}) {
   }
   hideAuthScreen();
   flushPendingCheckoutToast();
-  updateSyncIndicator(isOnline ? 'synced' : null);
+  if (!isOnline) updateSyncIndicator();
 }
 
 // ════════════════════════════════════════════════════════
