@@ -2753,10 +2753,13 @@ function isAccountAccessTemporarilyBlocked() {
   return !!currentUser && (accountAccessState.status === 'unknown' || accountAccessState.status === 'loading');
 }
 
-function canSyncAccountData() {
+function canSyncAccountData(expectedUserId = null) {
+  const userId = expectedUserId || currentUser?.id;
   return !!currentUser &&
+    !!userId &&
+    currentUser.id === userId &&
     accountAccessState.status === 'ready' &&
-    accountAccessState.userId === currentUser.id &&
+    accountAccessState.userId === userId &&
     ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState);
 }
 
@@ -2779,6 +2782,10 @@ function parseAccountAccessRpcResult(data) {
   if (!row || (Array.isArray(data) && data.length !== 1)) throw new Error('Malformed account access response');
   if (row.plan_tier !== 'free' && row.plan_tier !== 'premium') throw new Error('Unexpected account plan tier');
   if (!ACCOUNT_ACCESS_KNOWN_STATES.has(row.plan_state)) throw new Error('Unexpected account plan state');
+  const isValidPlanStatePair =
+    (row.plan_tier === 'premium' && row.plan_state === 'premium_operational') ||
+    (row.plan_tier === 'free' && (row.plan_state === 'free_normal' || row.plan_state === 'free_read_only'));
+  if (!isValidPlanStatePair) throw new Error('Inconsistent account plan state');
   const distinctClientsUsed = Number(row.distinct_clients_used);
   const sessionsCreatedTotal = Number(row.sessions_created_total);
   const maxSessionsCreatedPerClient = Number(row.max_sessions_created_per_client);
@@ -3034,22 +3041,26 @@ function scheduleSyncToCloud() {
 
 async function syncToCloud() {
   if (!currentUser || !isOnline) return;
-  if (!canSyncAccountData()) {
+  const syncUserId = currentUser.id;
+  if (!canSyncAccountData(syncUserId)) {
     cancelPendingSyncToCloud();
     rememberDeferredSyncIfStartupBlocked();
     return;
   }
-  updateSyncIndicator('syncing');
+  const clientPayload = appState.clients.map(c => ({ ...c, user_id: syncUserId }));
+  const sessionPayload = appState.sessions.map(s => ({ ...s, user_id: syncUserId }));
+  if (clientPayload.length === 0 && sessionPayload.length === 0) return;
   try {
-    const uid = currentUser.id;
-    if (appState.clients.length > 0) {
-      if (!canSyncAccountData()) return;
-      await _sbUpsert('clients', appState.clients.map(c => ({ ...c, user_id: uid })));
+    updateSyncIndicator('syncing');
+    if (clientPayload.length > 0) {
+      if (!canSyncAccountData(syncUserId)) return;
+      await _sbUpsert('clients', clientPayload);
     }
-    if (appState.sessions.length > 0) {
-      if (!canSyncAccountData()) return;
-      await _sbUpsert('sessions', appState.sessions.map(s => ({ ...s, user_id: uid })));
+    if (sessionPayload.length > 0) {
+      if (!canSyncAccountData(syncUserId)) return;
+      await _sbUpsert('sessions', sessionPayload);
     }
+    if (!canSyncAccountData(syncUserId)) return;
     updateSyncIndicator('synced');
   } catch(e) {
     updateSyncIndicator('error');
@@ -6574,7 +6585,7 @@ async function onSignedIn(user, options = {}) {
   }
   hideAuthScreen();
   flushPendingCheckoutToast();
-  updateSyncIndicator(isOnline ? 'synced' : null);
+  if (!isOnline) updateSyncIndicator();
 }
 
 // ════════════════════════════════════════════════════════
