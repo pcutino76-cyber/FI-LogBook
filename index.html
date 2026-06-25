@@ -2609,8 +2609,36 @@ let resetPasswordMessageKey = '';
 let resetPasswordMessageType = 'error';
 let syncTimeout   = null;
 let isOnline      = navigator.onLine;
+let deferredSyncRequested = false;
+let accountAccessRefreshSeq = 0;
+const ACCOUNT_ACCESS_ALLOWED_STATES = new Set(['premium_operational', 'free_normal']);
+const ACCOUNT_ACCESS_KNOWN_STATES = new Set(['premium_operational', 'free_normal', 'free_read_only']);
 
-window.addEventListener('online',  () => { isOnline = true;  updateSyncIndicator(); scheduleSyncToCloud(); });
+function createDefaultAccountAccessState(overrides = {}) {
+  return {
+    status: 'unknown',
+    userId: null,
+    planTier: null,
+    planState: null,
+    usage: {
+      distinctClientsUsed: 0,
+      sessionsCreatedTotal: 0,
+      maxSessionsCreatedPerClient: 0
+    },
+    limits: {
+      freeClientLimit: 7,
+      freeSessionsPerClientLimit: 5,
+      freeTotalSessionsLimit: 35
+    },
+    error: null,
+    loadedAt: null,
+    ...overrides
+  };
+}
+
+let accountAccessState = createDefaultAccountAccessState();
+
+window.addEventListener('online',  () => { handleOnlineReconnect(); });
 window.addEventListener('offline', () => { isOnline = false; updateSyncIndicator(); });
 
 // ── AUTH TOKEN PERSISTENCE ───────────────────────────
@@ -2704,6 +2732,133 @@ async function _sbUpsert(table, rows) {
   });
 }
 
+// ── ACCOUNT ACCESS STATE ────────────────────────────────
+function cancelPendingSyncToCloud() {
+  if (syncTimeout) {
+    clearTimeout(syncTimeout);
+    syncTimeout = null;
+  }
+}
+
+function resetAccountAccessState(userId = null, status = 'unknown') {
+  accountAccessState = createDefaultAccountAccessState({ status, userId });
+}
+
+function invalidateAccountAccessState() {
+  accountAccessRefreshSeq += 1;
+  resetAccountAccessState();
+}
+
+function isAccountAccessTemporarilyBlocked() {
+  return !!currentUser && (accountAccessState.status === 'unknown' || accountAccessState.status === 'loading');
+}
+
+function canSyncAccountData() {
+  return !!currentUser &&
+    accountAccessState.status === 'ready' &&
+    accountAccessState.userId === currentUser.id &&
+    ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState);
+}
+
+function rememberDeferredSyncIfStartupBlocked() {
+  if (isAccountAccessTemporarilyBlocked()) deferredSyncRequested = true;
+}
+
+function flushDeferredSyncIfAllowed() {
+  if (!deferredSyncRequested) return;
+  if (canSyncAccountData()) {
+    deferredSyncRequested = false;
+    scheduleSyncToCloud();
+  } else if (accountAccessState.status === 'ready' || accountAccessState.status === 'error') {
+    deferredSyncRequested = false;
+  }
+}
+
+function parseAccountAccessRpcResult(data) {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || (Array.isArray(data) && data.length !== 1)) throw new Error('Malformed account access response');
+  if (row.plan_tier !== 'free' && row.plan_tier !== 'premium') throw new Error('Unexpected account plan tier');
+  if (!ACCOUNT_ACCESS_KNOWN_STATES.has(row.plan_state)) throw new Error('Unexpected account plan state');
+  const distinctClientsUsed = Number(row.distinct_clients_used);
+  const sessionsCreatedTotal = Number(row.sessions_created_total);
+  const maxSessionsCreatedPerClient = Number(row.max_sessions_created_per_client);
+  const freeClientLimit = Number(row.free_client_limit);
+  const freeSessionsPerClientLimit = Number(row.free_sessions_per_client_limit);
+  const freeTotalSessionsLimit = Number(row.free_total_sessions_limit);
+  const numericValues = [
+    distinctClientsUsed,
+    sessionsCreatedTotal,
+    maxSessionsCreatedPerClient,
+    freeClientLimit,
+    freeSessionsPerClientLimit,
+    freeTotalSessionsLimit
+  ];
+  if (numericValues.some(v => !Number.isFinite(v))) throw new Error('Malformed account access usage values');
+  return {
+    planTier: row.plan_tier,
+    planState: row.plan_state,
+    usage: {
+      distinctClientsUsed,
+      sessionsCreatedTotal,
+      maxSessionsCreatedPerClient
+    },
+    limits: {
+      freeClientLimit,
+      freeSessionsPerClientLimit,
+      freeTotalSessionsLimit
+    }
+  };
+}
+
+async function refreshAccountAccessState() {
+  if (!currentUser?.id) {
+    invalidateAccountAccessState();
+    deferredSyncRequested = false;
+    return accountAccessState;
+  }
+  const userId = currentUser.id;
+  const requestSeq = ++accountAccessRefreshSeq;
+  accountAccessState = createDefaultAccountAccessState({ status: 'loading', userId });
+  try {
+    const data = await _sbFetch('/rest/v1/rpc/get_account_access_state', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    if (!currentUser || currentUser.id !== userId || requestSeq !== accountAccessRefreshSeq) return accountAccessState;
+    const parsed = parseAccountAccessRpcResult(data);
+    accountAccessState = {
+      status: 'ready',
+      userId,
+      planTier: parsed.planTier,
+      planState: parsed.planState,
+      usage: parsed.usage,
+      limits: parsed.limits,
+      error: null,
+      loadedAt: new Date().toISOString()
+    };
+    flushDeferredSyncIfAllowed();
+    return accountAccessState;
+  } catch(e) {
+    if (!currentUser || currentUser.id !== userId || requestSeq !== accountAccessRefreshSeq) return accountAccessState;
+    accountAccessState = createDefaultAccountAccessState({
+      status: 'error',
+      userId,
+      error: e?.message || 'account_access_error',
+      loadedAt: new Date().toISOString()
+    });
+    deferredSyncRequested = false;
+    return accountAccessState;
+  }
+}
+
+async function handleOnlineReconnect() {
+  isOnline = true;
+  updateSyncIndicator();
+  if (!currentUser || !_accessToken) return;
+  deferredSyncRequested = true;
+  await refreshAccountAccessState();
+}
+
 // ── AUTH FUNCTIONS ───────────────────────────────────
 async function authSignUp(email, password) {
   const data = await _sbAuth('/signup', { email, password });
@@ -2746,6 +2901,9 @@ async function authSignOut() {
   if (!confirmDiscardUnsavedSessionChanges()) return;
   clearSkeletalPreview();
   const signingOutUserId = currentUser?.id;
+  cancelPendingSyncToCloud();
+  deferredSyncRequested = false;
+  invalidateAccountAccessState();
   clearSavedNavigationContext(signingOutUserId);
   try { await Promise.race([
     _sbFetch('/auth/v1/logout', { method: 'POST' }),
@@ -2865,19 +3023,31 @@ function updateSyncIndicator(state) {
 
 // ── CLOUD SYNC ───────────────────────────────────────
 function scheduleSyncToCloud() {
+  if (!canSyncAccountData()) {
+    cancelPendingSyncToCloud();
+    rememberDeferredSyncIfStartupBlocked();
+    return;
+  }
   if (syncTimeout) clearTimeout(syncTimeout);
   syncTimeout = setTimeout(syncToCloud, 1500);
 }
 
 async function syncToCloud() {
   if (!currentUser || !isOnline) return;
+  if (!canSyncAccountData()) {
+    cancelPendingSyncToCloud();
+    rememberDeferredSyncIfStartupBlocked();
+    return;
+  }
   updateSyncIndicator('syncing');
   try {
     const uid = currentUser.id;
     if (appState.clients.length > 0) {
+      if (!canSyncAccountData()) return;
       await _sbUpsert('clients', appState.clients.map(c => ({ ...c, user_id: uid })));
     }
     if (appState.sessions.length > 0) {
+      if (!canSyncAccountData()) return;
       await _sbUpsert('sessions', appState.sessions.map(s => ({ ...s, user_id: uid })));
     }
     updateSyncIndicator('synced');
@@ -3341,10 +3511,11 @@ function loadState(options = {}) {
   }
 }
 
-function saveState() {
+function saveState(options = {}) {
+  const { localOnly = false } = options;
   try {
     localStorage.setItem(getUserScopedStorageKey(), JSON.stringify(appState));
-    scheduleSyncToCloud();
+    if (!localOnly) scheduleSyncToCloud();
   } catch(e) {
     showToast('Error saving data: ' + e.message, 'error');
   }
@@ -6385,11 +6556,16 @@ function hideAuthScreen() {
 async function onSignedIn(user, options = {}) {
   const { entry = 'restore' } = options;
   currentUser = user;
+  cancelPendingSyncToCloud();
+  deferredSyncRequested = false;
+  resetAccountAccessState(user.id, 'loading');
   resetUiResidualState();
   appState = { clients: [], sessions: [], ui: {} };
   updateHeaderUserBadge();
   updateSyncIndicator('syncing');
+  const accessRefreshPromise = refreshAccountAccessState();
   const loaded = await loadFromCloud();
+  accessRefreshPromise.catch(e => console.warn('[accountAccess] refresh skipped:', e?.message || e));
   if (!loaded) loadState({ allowLegacyMigration: true });
   if (entry === 'explicit-login') {
     showView('home', { skipUnsavedGuard: true });
