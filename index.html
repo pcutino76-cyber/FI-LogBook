@@ -2271,7 +2271,7 @@ const EXTRA_STRINGS = {
     remainingLabel: 'Remaining', unlimitedLabel: 'Unlimited', upgradeNote: 'Upgrade later to unlock unlimited active clients and sessions.',
     freeClientLimitReached: 'Free plan limit reached: max 5 clients in the active workspace at the same time.',
     freeClientCreationLimitReached: 'Free plan limit reached: max 7 client cards created in the free account.',
-    freeSessionLimitReached: 'Free plan limit reached: max 7 created sessions for each client, up to 35 total in the free account.',
+    freeSessionLimitReached: 'Free plan limit reached: maximum 5 created sessions for each client, up to 35 total.',
     profileUsage: 'Usage', archiveHint: 'Archived clients do not count toward the active workspace limit.',
     pdfReportBtn: '📄 Client Report PDF',
     pdfLockedBtn: '📄 Client Report PDF (Premium)',
@@ -2280,6 +2280,7 @@ const EXTRA_STRINGS = {
     checkoutSuccess: 'Payment completed. Premium will be updated shortly.', checkoutCancelled: 'Checkout cancelled.',
     checkoutLoginRequired: 'Please sign in to continue.', checkoutStartError: 'Unable to start checkout. Please try again.',
     readOnlyAccountMessage: 'Your Free account is currently read-only. You can view and export your data or upgrade to Premium, but edits are disabled.',
+    accountAccessUnavailableMessage: 'Account access is being checked or is temporarily unavailable. Please try again shortly.',
     readOnlyBannerTitle: 'Read-only Free account', readOnlyBannerBody: 'Your data remains available to view and export. Upgrade to Premium to restore editing.',
     viewSession: 'View', readOnlyModeLabel: 'Read-only', readOnlyImportDisabled: 'Import is disabled while the account is read-only.'
   },
@@ -2294,7 +2295,7 @@ const EXTRA_STRINGS = {
     remainingLabel: 'Rimanenti', unlimitedLabel: 'Illimitato', upgradeNote: 'Più avanti potrai sbloccare clienti e sessioni illimitati con il piano premium.',
     freeClientLimitReached: 'Limite piano free raggiunto: massimo 5 clienti nello spazio attivo contemporaneamente.',
     freeClientCreationLimitReached: 'Limite piano free raggiunto: massimo 7 schede cliente create nell’account free.',
-    freeSessionLimitReached: 'Limite piano free raggiunto: massimo 7 sessioni create per ogni cliente, fino a 35 totali nell’account free.',
+    freeSessionLimitReached: 'Limite piano free raggiunto: massimo 5 sessioni create per ogni cliente, fino a 35 totali.',
     profileUsage: 'Utilizzo', archiveHint: 'I clienti archiviati non contano nel limite dello spazio attivo.',
     pdfReportBtn: '📄 Report Cliente PDF',
     pdfLockedBtn: '📄 Report Cliente PDF (Premium)',
@@ -2303,6 +2304,7 @@ const EXTRA_STRINGS = {
     checkoutSuccess: 'Pagamento completato. Il piano Premium sarà aggiornato a breve.', checkoutCancelled: 'Checkout annullato.',
     checkoutLoginRequired: 'Accedi per continuare.', checkoutStartError: 'Impossibile avviare il checkout. Riprova.',
     readOnlyAccountMessage: 'Il tuo account Free è attualmente in sola lettura. Puoi consultare ed esportare i dati oppure passare a Premium, ma le modifiche sono disabilitate.',
+    accountAccessUnavailableMessage: 'Verifica dell’accesso account in corso o non disponibile. Riprova tra poco.',
     readOnlyBannerTitle: 'Account Free in sola lettura', readOnlyBannerBody: 'I dati restano consultabili ed esportabili. Passa a Premium per riattivare le modifiche.',
     viewSession: 'Visualizza', readOnlyModeLabel: 'Sola lettura', readOnlyImportDisabled: 'L’importazione è disabilitata mentre l’account è in sola lettura.'
   }
@@ -2777,19 +2779,32 @@ function isAccountReadOnly() {
     accountAccessState.planState === 'free_read_only';
 }
 
+function canMutateAccountData() {
+  return !!currentUser?.id &&
+    accountAccessState.status === 'ready' &&
+    accountAccessState.userId === currentUser.id &&
+    ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState);
+}
+
 function guardAccountDataMutation(options = {}) {
   const { silent = false } = options;
-  if (!isAccountReadOnly()) return true;
-  if (!silent) showToast(x('readOnlyAccountMessage'), 'error', 5200);
+  if (canMutateAccountData()) return true;
+  if (!silent) {
+    showToast(isAccountReadOnly() ? x('readOnlyAccountMessage') : x('accountAccessUnavailableMessage'), 'error', 5200);
+  }
   return false;
 }
 
+function accountMutationDisabledAttrs(extra = '') {
+  return !canMutateAccountData() ? `disabled aria-disabled="true" title="${esc(isAccountReadOnly() ? x('readOnlyModeLabel') : x('accountAccessUnavailableMessage'))}" ${extra}` : '';
+}
+
 function readOnlyDisabledAttrs(extra = '') {
-  return isAccountReadOnly() ? `disabled aria-disabled="true" title="${esc(x('readOnlyModeLabel'))}" ${extra}` : '';
+  return accountMutationDisabledAttrs(extra);
 }
 
 function readOnlyInputAttrs({ readonly = true } = {}) {
-  if (!isAccountReadOnly()) return '';
+  if (canMutateAccountData()) return '';
   return readonly ? 'readonly aria-readonly="true"' : 'disabled aria-disabled="true"';
 }
 
@@ -4289,6 +4304,9 @@ function renderProfile() {
     const usagePill = !isPremiumPlan() && (c.status || 'active') !== 'archived'
       ? `<span class="plan-pill">${x('profileUsage')}: ${getClientSessionQuotaUsed(c.id)}/${FREE_PLAN_LIMITS.sessionsPerClient}</span>`
       : `<span class="plan-pill">${x('profileUsage')}: ${sessions.length}</span>`;
+    const readOnly = isAccountReadOnly();
+    const roAttrs = readOnlyDisabledAttrs();
+    const sessionActionLabel = readOnly ? x('viewSession') : t('editSession');
 
     const sessionsHtml = sessions.length === 0
       ? `<div class="empty-state" style="padding:24px;"><div class="empty-state-icon">📋</div><p>${t('noSessionsYet')}</p></div>`
@@ -4322,9 +4340,6 @@ function renderProfile() {
     const newSessionDisabled = !canCreateSessionForClient(c.id)
       ? `disabled title="${x('freeSessionLimitReached')}" style="opacity:.65;cursor:not-allowed;"`
       : '';
-    const readOnly = isAccountReadOnly();
-    const roAttrs = readOnlyDisabledAttrs();
-    const sessionActionLabel = readOnly ? x('viewSession') : t('editSession');
     const pdfBtn = isPremiumPlan()
       ? `<button class="btn btn-secondary" onclick="exportClientReportPDF('${c.id}')">${x('pdfReportBtn')}</button>`
       : `<button class="btn btn-secondary" onclick="exportClientReportPDF('${c.id}')" title="${t('reportPremiumOnly')}" style="opacity:.82;">${x('pdfLockedBtn')}</button>`;
@@ -4340,7 +4355,7 @@ function renderProfile() {
           ${archiveBtn}
           <button class="btn btn-secondary" onclick="openEditClient('${c.id}')" ${roAttrs}>${t('editProfile')}</button>
           ${pdfBtn}
-          <button class="btn btn-primary" onclick="newSession()" ${readOnly ? roAttrs : newSessionDisabled}>${t('newSession')}</button>
+          <button class="btn btn-primary" onclick="newSession()" ${!canMutateAccountData() ? roAttrs : newSessionDisabled}>${t('newSession')}</button>
           <button class="btn btn-danger" onclick="trashClient('${c.id}')" ${roAttrs} title="${x('moveClientToTrash')}" aria-label="${x('moveClientToTrash')}">🗑️ ${t('deleteClientShort')}</button>
         </div>
       </div>
@@ -4786,6 +4801,7 @@ function skelPush(view) {
   skelFuture[view] = [];
 }
 function skelUndo(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   if (!skelHistory[view].length) { showToast(t('nothingToUndo'), 'info'); return; }
   skelFuture[view].push(skelSnapshot(view));
@@ -4795,6 +4811,7 @@ function skelUndo(view) {
   rerenderSkeletalPanel(view);
 }
 function skelRedo(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   if (!skelFuture[view].length) { showToast(t('nothingToRedo'), 'info'); return; }
   skelHistory[view].push(skelSnapshot(view));
