@@ -2844,48 +2844,48 @@ function applyAccountAccessUiState(previousState = null) {
 function syncBackupReadOnlyState() {
   const btn = document.getElementById('btn-import-json');
   const input = document.getElementById('import-file');
-  const readOnly = isAccountReadOnly();
+  const mutationBlocked = !canMutateAccountData();
   if (btn) {
-    btn.disabled = readOnly;
-    btn.title = readOnly ? x('readOnlyImportDisabled') : '';
-    btn.style.opacity = readOnly ? '.65' : '';
-    btn.style.cursor = readOnly ? 'not-allowed' : '';
+    btn.disabled = mutationBlocked;
+    btn.title = mutationBlocked ? (isAccountReadOnly() ? x('readOnlyImportDisabled') : x('accountAccessUnavailableMessage')) : '';
+    btn.style.opacity = mutationBlocked ? '.65' : '';
+    btn.style.cursor = mutationBlocked ? 'not-allowed' : '';
   }
-  if (input) input.disabled = readOnly;
+  if (input) input.disabled = mutationBlocked;
 }
 
 function syncClientModalReadOnlyState() {
   const modal = document.getElementById('modal-client');
   if (!modal || !modal.classList.contains('open')) return;
-  const readOnly = isAccountReadOnly();
+  const mutationBlocked = !canMutateAccountData();
   ['cf-name','cf-tags','cf-baseline','cf-notes'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.readOnly = readOnly;
+    if (el) el.readOnly = mutationBlocked;
   });
   const status = document.getElementById('cf-status');
-  if (status) status.disabled = readOnly;
+  if (status) status.disabled = mutationBlocked;
   const save = document.getElementById('btn-save-client');
-  if (save) save.disabled = readOnly;
+  if (save) save.disabled = mutationBlocked;
 }
 
 function syncNoteModalReadOnlyState() {
   const modal = document.getElementById('modal-note');
   if (!modal || !modal.classList.contains('open')) return;
-  const readOnly = isAccountReadOnly();
+  const mutationBlocked = !canMutateAccountData();
   const text = document.getElementById('modal-note-text');
-  if (text) text.readOnly = readOnly;
+  if (text) text.readOnly = mutationBlocked;
   const save = document.getElementById('btn-save-note');
-  if (save) save.disabled = readOnly;
+  if (save) save.disabled = mutationBlocked;
 }
 
 function syncDeleteForeverModalReadOnlyState() {
   const modal = document.getElementById('modal-delete-forever');
   if (!modal || !modal.classList.contains('open')) return;
-  const readOnly = isAccountReadOnly();
+  const mutationBlocked = !canMutateAccountData();
   const cb = document.getElementById('confirm-delete-cb');
   const btn = document.getElementById('btn-delete-forever');
-  if (cb) cb.disabled = readOnly;
-  if (btn) btn.disabled = readOnly;
+  if (cb) cb.disabled = mutationBlocked;
+  if (btn) btn.disabled = mutationBlocked;
 }
 
 function rememberDeferredSyncIfStartupBlocked() {
@@ -2952,6 +2952,7 @@ async function refreshAccountAccessState() {
   const requestSeq = ++accountAccessRefreshSeq;
   const previousAccessState = { ...accountAccessState };
   accountAccessState = createDefaultAccountAccessState({ status: 'loading', userId });
+  applyAccountAccessUiState(previousAccessState, { silent: true });
   try {
     const data = await _sbFetch('/rest/v1/rpc/get_account_access_state', {
       method: 'POST',
@@ -4306,7 +4307,7 @@ function renderProfile() {
       : `<span class="plan-pill">${x('profileUsage')}: ${sessions.length}</span>`;
     const readOnly = isAccountReadOnly();
     const roAttrs = readOnlyDisabledAttrs();
-    const sessionActionLabel = readOnly ? x('viewSession') : t('editSession');
+    const sessionActionLabel = canMutateAccountData() ? t('editSession') : x('viewSession');
 
     const sessionsHtml = sessions.length === 0
       ? `<div class="empty-state" style="padding:24px;"><div class="empty-state-icon">📋</div><p>${t('noSessionsYet')}</p></div>`
@@ -4502,7 +4503,7 @@ function renderSessionEditor() {
     let gridRows = STRUCT_ROWS.map(row => {
       const cells = STRUCT_COLS.map((col, i) => {
         const val = (sessionDraft.structuralObservationGrid || {})[row + '_' + col] || '';
-        return `<td><input type="text" value="${esc(val)}" ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.structuralObservationGrid['${row}_${col}']=this.value" placeholder="…" autocomplete="off"></td>`;
+        return `<td><input type="text" value="${esc(val)}" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.structuralObservationGrid['${row}_${col}']=this.value" placeholder="…" autocomplete="off"></td>`;
       }).join('');
       return `<tr><td style="padding:6px 10px;font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);white-space:nowrap;">${row}</td>${cells}</tr>`;
     }).join('');
@@ -4522,10 +4523,10 @@ function renderSessionEditor() {
         <span class="slider-label">${f.label}</span>
         <div class="slider-track">
           <input type="range" min="0" max="10" step="1" value="${rangeVal}" ${controlDisabled}
-            oninput="if(!isAccountReadOnly()){sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;}">
+            oninput="if(canMutateAccountData()){sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;}">
         </div>
         <span class="slider-val" id="sv-${f.key}">${displayVal}</span>
-        <button type="button" class="btn btn-ghost btn-sm" ${controlDisabled} style="font-size:10px;padding:2px 6px;" onclick="if(!isAccountReadOnly()){markSessionDraftDirty();sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;}" title="Clear">✕</button>
+        <button type="button" class="btn btn-ghost btn-sm" ${controlDisabled} style="font-size:10px;padding:2px 6px;" onclick="if(canMutateAccountData()){markSessionDraftDirty();sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;}" title="Clear">✕</button>
       </div>`;
     }).join('');
 
@@ -4555,23 +4556,23 @@ function renderSessionEditor() {
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('dateLabel')}</label>
-	              <input type="date" id="s-date" value="${sessionDraft.date}" ${controlDisabled} onchange="if(!isAccountReadOnly()) sessionDraft.date=this.value" autocomplete="off">
+	              <input type="date" id="s-date" value="${sessionDraft.date}" ${controlDisabled} onchange="if(canMutateAccountData()) sessionDraft.date=this.value" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('durationLabel')}</label>
-	              <input type="number" id="s-duration" value="${sessionDraft.durationMinutes || ''}" min="0" max="300" ${controlDisabled} onchange="if(!isAccountReadOnly()) sessionDraft.durationMinutes=this.value?parseInt(this.value):null" placeholder="${durationPlaceholder}" autocomplete="off">
+	              <input type="number" id="s-duration" value="${sessionDraft.durationMinutes || ''}" min="0" max="300" ${controlDisabled} onchange="if(canMutateAccountData()) sessionDraft.durationMinutes=this.value?parseInt(this.value):null" placeholder="${durationPlaceholder}" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('locationLabel')}</label>
-	              <input type="text" id="s-location" value="${esc(sessionDraft.locationContext || '')}" ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.locationContext=this.value" placeholder="${t('locationPlaceholder')}" autocomplete="off">
+	              <input type="text" id="s-location" value="${esc(sessionDraft.locationContext || '')}" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.locationContext=this.value" placeholder="${t('locationPlaceholder')}" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('sessionTagsLabel')}</label>
-	              <input type="text" id="s-tags" value="${esc((sessionDraft.sessionTags || []).join(', '))}" ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.sessionTags=this.value.split(',').map(x=>x.trim()).filter(Boolean)" placeholder="${t('sessionTagsPlaceholder')}" autocomplete="off">
+	              <input type="text" id="s-tags" value="${esc((sessionDraft.sessionTags || []).join(', '))}" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.sessionTags=this.value.split(',').map(x=>x.trim()).filter(Boolean)" placeholder="${t('sessionTagsPlaceholder')}" autocomplete="off">
             </div>
           </div>
           <div class="consent-row" style="margin-top:14px;">
-            <input type="checkbox" id="s-consent" ${sessionDraft.consentObtained ? 'checked' : ''} ${controlDisabled} onchange="if(!isAccountReadOnly()) sessionDraft.consentObtained=this.checked">
+            <input type="checkbox" id="s-consent" ${sessionDraft.consentObtained ? 'checked' : ''} ${controlDisabled} onchange="if(canMutateAccountData()) sessionDraft.consentObtained=this.checked">
             <label for="s-consent" style="font-size:13px;cursor:pointer;">${t('consentLabel')}</label>
           </div>
         </div>
@@ -4583,7 +4584,7 @@ function renderSessionEditor() {
           <span class="form-section-arrow">▼</span>
         </div>
         <div class="form-section-body">
-	          <textarea id="s-goal" ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.studentRequestGoal=this.value" placeholder="${t('studentRequestPlaceholder')}" style="min-height:100px;" autocomplete="off">${esc(sessionDraft.studentRequestGoal || '')}</textarea>
+	          <textarea id="s-goal" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.studentRequestGoal=this.value" placeholder="${t('studentRequestPlaceholder')}" style="min-height:100px;" autocomplete="off">${esc(sessionDraft.studentRequestGoal || '')}</textarea>
         </div>
       </div>
 
@@ -4612,15 +4613,15 @@ function renderSessionEditor() {
           <div class="form-grid">
             <div class="form-field">
               <label class="label">${t('functionalHypLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.functionalHypothesis=this.value" placeholder="${t('functionalHypPlaceholder')}" autocomplete="off">${esc(sessionDraft.functionalHypothesis || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.functionalHypothesis=this.value" placeholder="${t('functionalHypPlaceholder')}" autocomplete="off">${esc(sessionDraft.functionalHypothesis || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('keyConstraintsLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.keyConstraints=this.value" placeholder="${t('keyConstraintsPlaceholder')}" autocomplete="off">${esc(sessionDraft.keyConstraints || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.keyConstraints=this.value" placeholder="${t('keyConstraintsPlaceholder')}" autocomplete="off">${esc(sessionDraft.keyConstraints || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('lessonStrategyLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.lessonStrategy=this.value" placeholder="${t('lessonStrategyPlaceholder')}" autocomplete="off">${esc(sessionDraft.lessonStrategy || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.lessonStrategy=this.value" placeholder="${t('lessonStrategyPlaceholder')}" autocomplete="off">${esc(sessionDraft.lessonStrategy || '')}</textarea>
             </div>
           </div>
         </div>
@@ -4635,15 +4636,15 @@ function renderSessionEditor() {
           <div class="form-grid">
             <div class="form-field">
               <label class="label">${t('outcomesLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.outcomesImmediate=this.value" placeholder="${t('outcomesPlaceholder')}" autocomplete="off">${esc(sessionDraft.outcomesImmediate || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.outcomesImmediate=this.value" placeholder="${t('outcomesPlaceholder')}" autocomplete="off">${esc(sessionDraft.outcomesImmediate || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('followUpLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.followUpNextTime=this.value" placeholder="${t('followUpPlaceholder')}" autocomplete="off">${esc(sessionDraft.followUpNextTime || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.followUpNextTime=this.value" placeholder="${t('followUpPlaceholder')}" autocomplete="off">${esc(sessionDraft.followUpNextTime || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('ahaMomentLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.ahaMoment=this.value" placeholder="${t('ahaMomentPlaceholder')}" autocomplete="off">${esc(sessionDraft.ahaMoment || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.ahaMoment=this.value" placeholder="${t('ahaMomentPlaceholder')}" autocomplete="off">${esc(sessionDraft.ahaMoment || '')}</textarea>
             </div>
           </div>
         </div>
@@ -4658,7 +4659,7 @@ function renderSessionEditor() {
           ${slidersHtml}
           <div class="form-field" style="margin-top:10px;">
             <label class="label">${t('metricNotesLabel')}</label>
-	            <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.metrics.metricNotes=this.value" placeholder="${t('metricNotesPlaceholder')}" autocomplete="off">${esc((sessionDraft.metrics && sessionDraft.metrics.metricNotes) || '')}</textarea>
+	            <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.metrics.metricNotes=this.value" placeholder="${t('metricNotesPlaceholder')}" autocomplete="off">${esc((sessionDraft.metrics && sessionDraft.metrics.metricNotes) || '')}</textarea>
           </div>
         </div>
       </div>
@@ -4673,13 +4674,13 @@ function renderSessionEditor() {
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('homeSuggestionLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.homeSuggestion=this.value" placeholder="${t('homeSuggestionPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeSuggestion || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.homeSuggestion=this.value" placeholder="${t('homeSuggestionPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeSuggestion || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('homeFrequencyLabel')}</label>
-	              <input type="text" ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.homeFrequency=this.value" value="${esc(sessionDraft.homeFrequency || '')}" placeholder="${t('homeFrequencyPlaceholder')}" autocomplete="off">
+	              <input type="text" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.homeFrequency=this.value" value="${esc(sessionDraft.homeFrequency || '')}" placeholder="${t('homeFrequencyPlaceholder')}" autocomplete="off">
               <label class="label" style="margin-top:10px;">${t('homeNotesLabel')}</label>
-	              <textarea ${textRo} onchange="if(!isAccountReadOnly()) sessionDraft.homeNotes=this.value" placeholder="${t('homeNotesPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeNotes || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.homeNotes=this.value" placeholder="${t('homeNotesPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeNotes || '')}</textarea>
             </div>
           </div>
         </div>
@@ -4889,7 +4890,9 @@ function buildSkeletalPanel(view) {
   const displayData = getSkeletalDisplayData(view);
   const markers = displayData.markers;
   const connections = displayData.connections;
-  const readOnly = displayData.readOnly || isAccountReadOnly();
+  const historicalPreviewReadOnly = displayData.readOnly;
+  const mutationBlocked = !canMutateAccountData();
+  const readOnly = historicalPreviewReadOnly || mutationBlocked;
   const svgContent  = view === 'front' ? SVG_FRONT : SVG_BACK;
   const canUndo = !readOnly && (skelHistory[view]||[]).length > 0;
   const canRedo = !readOnly && (skelFuture[view]||[]).length > 0;
@@ -4948,7 +4951,7 @@ function buildSkeletalPanel(view) {
   }).join('');
 
   return `<div class="skeletal-panel">
-    <div class="skeletal-panel-title">${view==='front'?t('frontView'):t('backView')}${readOnly ? ` <span class="readonly-pill">${t('historicalPreviewReadonly')}</span>` : ''}</div>
+    <div class="skeletal-panel-title">${view==='front'?t('frontView'):t('backView')}${historicalPreviewReadOnly ? ` <span class="readonly-pill">${t('historicalPreviewReadonly')}</span>` : isAccountReadOnly() ? ` <span class="readonly-pill">${x('readOnlyModeLabel')}</span>` : ''}</div>
     <div class="skeletal-canvas-wrap ${readOnly ? 'read-only' : ''}" id="skel-wrap-${view}" style="position:relative;cursor:${readOnly ? 'default' : 'crosshair'};">
       ${svgContent}
       ${arrowsHtml}
@@ -4968,7 +4971,7 @@ function buildSkeletalPanel(view) {
           <tbody>${tableRowsHtml}</tbody>
         </table>
       </div>
-    </div>` : `<p class="note-small" style="text-align:center;margin-top:10px;">${readOnly ? t('historicalPreviewReadonly') : t('clickSilhouette')}</p>`}
+    </div>` : `<p class="note-small" style="text-align:center;margin-top:10px;">${historicalPreviewReadOnly ? t('historicalPreviewReadonly') : isAccountReadOnly() ? x('readOnlyModeLabel') : mutationBlocked ? x('accountAccessUnavailableMessage') : t('clickSilhouette')}</p>`}
   </div>`;
 }
 
@@ -5623,17 +5626,27 @@ function importJSON(input) {
   if (!window.confirm(t('importConfirm'))) { input.value = ''; return; }
   const reader = new FileReader();
   reader.onload = e => {
+    const previousState = JSON.parse(JSON.stringify(appState));
     try {
+      if (!guardAccountDataMutation()) { input.value = ''; return; }
       const parsed = JSON.parse(e.target.result);
       appState = { clients: parsed.clients || [], sessions: parsed.sessions || [], ui: parsed.ui || {} };
       normalizeState();
-      saveState({ purpose: 'account-mutation' });
+      if (!saveState({ purpose: 'account-mutation' })) {
+        appState = previousState;
+        input.value = '';
+        return;
+      }
       showToast(t('dataImported'), 'success');
       renderClients();
-    } catch(err) { showToast('Import error: ' + err.message, 'error'); }
+    } catch(err) {
+      appState = previousState;
+      showToast('Import error: ' + err.message, 'error');
+    } finally {
+      input.value = '';
+    }
   };
   reader.readAsText(file);
-  input.value = '';
 }
 
 function exportCSV() {
