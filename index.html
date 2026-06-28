@@ -3781,7 +3781,7 @@ function restoreSavedNavigationContext() {
       if (session && client) {
         pendingRestoreOpenSectionIds = Array.isArray(ctx.openSectionIds) ? sanitizeOpenSectionIds(ctx.openSectionIds) : null;
         currentClientId = session.clientId;
-        editSession(session.id, { skipUnsavedGuard: true, skipContextWrite: true, restoreOpenSections: pendingRestoreOpenSectionIds });
+        editSession(session.id, { skipUnsavedGuard: true, skipContextWrite: true, restoreOpenSections: pendingRestoreOpenSectionIds, preserveScrollPosition: true });
         writeSavedNavigationContext({ view: 'session', clientId: session.clientId, sessionId: session.id, openSectionIds: pendingRestoreOpenSectionIds });
         pendingRestoreOpenSectionIds = null;
         return true;
@@ -4041,6 +4041,20 @@ function syncNavState(name) {
     if (moreBtn) moreBtn.classList.add('active');
   }
 }
+
+function resetViewScroll(viewName) {
+  const view = document.getElementById(`view-${viewName}`);
+  if (!view) return;
+  view.scrollTop = 0;
+  view.scrollLeft = 0;
+}
+
+function resetSessionViewScrollAfterOpen() {
+  const reset = () => resetViewScroll('session');
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(reset);
+  else setTimeout(reset, 0);
+}
+
 function showView(name, options = {}) {
   const { skipUnsavedGuard = false, skipContextWrite = false } = options;
   const activeView = document.querySelector('.view.active')?.id.replace('view-', '');
@@ -4660,6 +4674,7 @@ function duplicateSession(sessionId, options = {}) {
   persistClientProfileContext(src.clientId);
   renderSessionEditor();
   showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  resetSessionViewScrollAfterOpen();
   showToast(x('duplicateCreated'), 'success');
   return true;
 }
@@ -4692,10 +4707,11 @@ function newSession() {
   persistClientProfileContext(currentClientId);
   renderSessionEditor();
   showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  resetSessionViewScrollAfterOpen();
 }
 
 function editSession(sessionId, options = {}) {
-  const { skipUnsavedGuard = false, skipContextWrite = false, restoreOpenSections = null } = options;
+  const { skipUnsavedGuard = false, skipContextWrite = false, restoreOpenSections = null, preserveScrollPosition = false } = options;
   if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
   clearSkeletalPreview();
   const s = appState.sessions.find(x => x.id === sessionId && !x.isTrashed);
@@ -4714,6 +4730,7 @@ function editSession(sessionId, options = {}) {
   renderSessionEditor();
   applyOpenSectionIds(restoreOpenSections ?? pendingRestoreOpenSectionIds ?? null);
   showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  if (!preserveScrollPosition) resetSessionViewScrollAfterOpen();
   if (!skipContextWrite) persistSavedSessionContext(sessionId);
   return true;
 }
