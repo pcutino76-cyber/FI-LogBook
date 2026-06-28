@@ -3381,11 +3381,28 @@ function updateSyncIndicatorForAccountAccessState() {
     updateSyncIndicator();
     return;
   }
+
+  if (accountAccessState.status === 'unknown' || accountAccessState.status === 'loading') {
+    updateSyncIndicator('syncing');
+    return;
+  }
+
   if (accountAccessState.status === 'error') {
     updateSyncIndicator('error');
-  } else if (accountAccessState.status === 'ready' && accountAccessState.planState === 'free_read_only') {
-    resetSyncIndicator();
+    return;
   }
+
+  if (accountAccessState.status === 'ready' && accountAccessState.planState === 'free_read_only') {
+    resetSyncIndicator();
+    return;
+  }
+
+  if (accountAccessState.status === 'ready' && ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState)) {
+    updateSyncIndicator('synced');
+    return;
+  }
+
+  updateSyncIndicator('error');
 }
 
 // ── CLOUD SYNC ───────────────────────────────────────
