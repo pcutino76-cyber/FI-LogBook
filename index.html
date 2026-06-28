@@ -1509,7 +1509,7 @@ input[type=range]::-webkit-slider-thumb {
       <div class="backup-icon">📂</div>
       <div class="backup-title" id="backup-import-title">—</div>
       <div class="backup-desc" id="backup-import-desc">—</div>
-      <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()" id="btn-import-json">—</button>
+      <button class="btn btn-secondary" onclick="if(guardAccountDataMutation()) document.getElementById('import-file').click()" id="btn-import-json">—</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
     </div>
     <div class="backup-card">
@@ -2271,14 +2271,18 @@ const EXTRA_STRINGS = {
     remainingLabel: 'Remaining', unlimitedLabel: 'Unlimited', upgradeNote: 'Upgrade later to unlock unlimited active clients and sessions.',
     freeClientLimitReached: 'Free plan limit reached: max 5 clients in the active workspace at the same time.',
     freeClientCreationLimitReached: 'Free plan limit reached: max 7 client cards created in the free account.',
-    freeSessionLimitReached: 'Free plan limit reached: max 7 created sessions for each client, up to 35 total in the free account.',
+    freeSessionLimitReached: 'Free plan limit reached: maximum 5 created sessions for each client, up to 35 total.',
     profileUsage: 'Usage', archiveHint: 'Archived clients do not count toward the active workspace limit.',
     pdfReportBtn: '📄 Client Report PDF',
     pdfLockedBtn: '📄 Client Report PDF (Premium)',
     pdfPremiumBadge: 'Premium report',
     upgradeToPremiumBtn: 'Upgrade to Premium', checkoutLoading: 'Redirecting…',
     checkoutSuccess: 'Payment completed. Premium will be updated shortly.', checkoutCancelled: 'Checkout cancelled.',
-    checkoutLoginRequired: 'Please sign in to continue.', checkoutStartError: 'Unable to start checkout. Please try again.'
+    checkoutLoginRequired: 'Please sign in to continue.', checkoutStartError: 'Unable to start checkout. Please try again.',
+    readOnlyAccountMessage: 'Your Free account is currently read-only. You can view and export your data or upgrade to Premium, but edits are disabled.',
+    accountAccessUnavailableMessage: 'Account access is being checked or is temporarily unavailable. Please try again shortly.',
+    readOnlyBannerTitle: 'Read-only Free account', readOnlyBannerBody: 'Your data remains available to view and export. Upgrade to Premium to restore editing.',
+    viewSession: 'View', readOnlyModeLabel: 'Read-only', readOnlyImportDisabled: 'Import is disabled while the account is read-only.'
   },
   it: {
     navArchive: 'Archivio', archiveTitle: 'Archivio', archiveSubtitle: 'Clienti archiviati fuori dallo spazio attivo',
@@ -2291,14 +2295,18 @@ const EXTRA_STRINGS = {
     remainingLabel: 'Rimanenti', unlimitedLabel: 'Illimitato', upgradeNote: 'Più avanti potrai sbloccare clienti e sessioni illimitati con il piano premium.',
     freeClientLimitReached: 'Limite piano free raggiunto: massimo 5 clienti nello spazio attivo contemporaneamente.',
     freeClientCreationLimitReached: 'Limite piano free raggiunto: massimo 7 schede cliente create nell’account free.',
-    freeSessionLimitReached: 'Limite piano free raggiunto: massimo 7 sessioni create per ogni cliente, fino a 35 totali nell’account free.',
+    freeSessionLimitReached: 'Limite piano free raggiunto: massimo 5 sessioni create per ogni cliente, fino a 35 totali.',
     profileUsage: 'Utilizzo', archiveHint: 'I clienti archiviati non contano nel limite dello spazio attivo.',
     pdfReportBtn: '📄 Report Cliente PDF',
     pdfLockedBtn: '📄 Report Cliente PDF (Premium)',
     pdfPremiumBadge: 'Report Premium',
     upgradeToPremiumBtn: 'Passa a Premium', checkoutLoading: 'Reindirizzamento…',
     checkoutSuccess: 'Pagamento completato. Il piano Premium sarà aggiornato a breve.', checkoutCancelled: 'Checkout annullato.',
-    checkoutLoginRequired: 'Accedi per continuare.', checkoutStartError: 'Impossibile avviare il checkout. Riprova.'
+    checkoutLoginRequired: 'Accedi per continuare.', checkoutStartError: 'Impossibile avviare il checkout. Riprova.',
+    readOnlyAccountMessage: 'Il tuo account Free è attualmente in sola lettura. Puoi consultare ed esportare i dati oppure passare a Premium, ma le modifiche sono disabilitate.',
+    accountAccessUnavailableMessage: 'Verifica dell’accesso account in corso o non disponibile. Riprova tra poco.',
+    readOnlyBannerTitle: 'Account Free in sola lettura', readOnlyBannerBody: 'I dati restano consultabili ed esportabili. Passa a Premium per riattivare le modifiche.',
+    viewSession: 'Visualizza', readOnlyModeLabel: 'Sola lettura', readOnlyImportDisabled: 'L’importazione è disabilitata mentre l’account è in sola lettura.'
   }
 };
 function x(key) {
@@ -2417,6 +2425,7 @@ function applyTranslations() {
   document.getElementById('backup-import-title').textContent = s.importJsonTitle;
   document.getElementById('backup-import-desc').textContent  = s.importJsonDesc;
   document.getElementById('btn-import-json').textContent     = s.importJsonBtn;
+  syncBackupReadOnlyState();
   document.getElementById('backup-csv-title').textContent  = s.exportCsvTitle;
   document.getElementById('backup-csv-desc').textContent   = s.exportCsvDesc;
   document.getElementById('btn-export-csv').textContent    = s.exportCsvBtn;
@@ -2763,6 +2772,338 @@ function canSyncAccountData(expectedUserId = null) {
     ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState);
 }
 
+function isAccountReadOnly() {
+  return !!currentUser?.id &&
+    accountAccessState.status === 'ready' &&
+    accountAccessState.userId === currentUser.id &&
+    accountAccessState.planState === 'free_read_only';
+}
+
+function canMutateAccountData() {
+  return !!currentUser?.id &&
+    accountAccessState.status === 'ready' &&
+    accountAccessState.userId === currentUser.id &&
+    ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState);
+}
+
+function guardAccountDataMutation(options = {}) {
+  const { silent = false } = options;
+  if (canMutateAccountData()) return true;
+  if (!silent) {
+    showToast(isAccountReadOnly() ? x('readOnlyAccountMessage') : x('accountAccessUnavailableMessage'), 'error', 5200);
+  }
+  return false;
+}
+
+function accountMutationDisabledAttrs(extra = '') {
+  return !canMutateAccountData() ? `disabled aria-disabled="true" data-account-access-disabled="true" title="${esc(isAccountReadOnly() ? x('readOnlyModeLabel') : x('accountAccessUnavailableMessage'))}" ${extra}` : '';
+}
+
+function readOnlyDisabledAttrs(extra = '') {
+  return accountMutationDisabledAttrs(extra);
+}
+
+function readOnlyInputAttrs({ readonly = true } = {}) {
+  if (canMutateAccountData()) return '';
+  return readonly ? 'readonly aria-readonly="true" data-account-access-readonly="true"' : 'disabled aria-disabled="true" data-account-access-disabled="true"';
+}
+
+function renderReadOnlyBanner() {
+  if (!isAccountReadOnly()) return '';
+  return `<div class="connect-mode-bar" style="margin:12px 0;border-color:var(--gold);background:var(--surface2);color:var(--text);">🔒 <strong>${x('readOnlyBannerTitle')}</strong>&nbsp; ${x('readOnlyBannerBody')}</div>`;
+}
+
+function renderAccountAccessUnavailableNotice() {
+  if (canMutateAccountData() || isAccountReadOnly()) return '';
+  return `<div class="connect-mode-bar" style="margin:12px 0;border-color:var(--gold);background:var(--surface2);color:var(--text);">⏳ ${x('accountAccessUnavailableMessage')}</div>`;
+}
+
+function renderSessionAccountAccessNotice() {
+  return isAccountReadOnly() ? renderReadOnlyBanner() : renderAccountAccessUnavailableNotice();
+}
+
+function syncSessionAccountAccessNotice() {
+  const el = document.getElementById('session-account-access-notice');
+  if (el) el.innerHTML = renderSessionAccountAccessNotice();
+}
+
+function getActiveViewName() {
+  return document.querySelector('.view.active')?.id?.replace('view-', '') || null;
+}
+
+let applyingAccountAccessUiState = false;
+function applyAccountAccessUiState(previousState = null, options = {}) {
+  const { silent = false } = options;
+  if (applyingAccountAccessUiState) return;
+  applyingAccountAccessUiState = true;
+  try {
+    const wasReadOnly = !!(previousState && previousState.status === 'ready' && previousState.planState === 'free_read_only' && previousState.userId === currentUser?.id);
+    const nowReadOnly = isAccountReadOnly();
+    if (nowReadOnly) cancelPendingSyncToCloud();
+    const active = getActiveViewName();
+    if (active === 'clients') renderClients();
+    else if (active === 'profile') renderProfile();
+    else if (active === 'session') syncSessionEditorMutationState();
+    else if (active === 'archive') renderArchive();
+    else if (active === 'trash') renderTrash();
+    syncClientMutationEntryState();
+    syncBackupReadOnlyState();
+    syncClientModalReadOnlyState();
+    syncNoteModalReadOnlyState();
+    syncDeleteForeverModalReadOnlyState();
+    if (!silent && nowReadOnly && !wasReadOnly) guardAccountDataMutation();
+  } finally {
+    applyingAccountAccessUiState = false;
+  }
+}
+
+
+function syncClientMutationEntryState() {
+  const btn = document.getElementById('btn-add-client');
+  if (!btn) return;
+  const mutationBlocked = !canMutateAccountData();
+  setAccountAccessDisabledState(btn, mutationBlocked, false);
+  if (!mutationBlocked) {
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+  }
+}
+
+function syncBackupReadOnlyState() {
+  const btn = document.getElementById('btn-import-json');
+  const input = document.getElementById('import-file');
+  const mutationBlocked = !canMutateAccountData();
+  if (btn) {
+    btn.disabled = mutationBlocked;
+    btn.title = mutationBlocked ? (isAccountReadOnly() ? x('readOnlyImportDisabled') : x('accountAccessUnavailableMessage')) : '';
+    btn.style.opacity = mutationBlocked ? '.65' : '';
+    btn.style.cursor = mutationBlocked ? 'not-allowed' : '';
+  }
+  if (input) input.disabled = mutationBlocked;
+}
+
+function syncClientModalReadOnlyState() {
+  const modal = document.getElementById('modal-client');
+  if (!modal || !modal.classList.contains('open')) return;
+  const mutationBlocked = !canMutateAccountData();
+  ['cf-name','cf-tags','cf-baseline','cf-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.readOnly = mutationBlocked;
+  });
+  const status = document.getElementById('cf-status');
+  if (status) status.disabled = mutationBlocked;
+  const save = document.getElementById('btn-save-client');
+  if (save) save.disabled = mutationBlocked;
+}
+
+function syncNoteModalReadOnlyState() {
+  const modal = document.getElementById('modal-note');
+  if (!modal || !modal.classList.contains('open')) return;
+  const mutationBlocked = !canMutateAccountData();
+  const text = document.getElementById('modal-note-text');
+  if (text) text.readOnly = mutationBlocked;
+  const save = document.getElementById('btn-save-note');
+  if (save) save.disabled = mutationBlocked;
+}
+
+function syncDeleteForeverModalReadOnlyState() {
+  const modal = document.getElementById('modal-delete-forever');
+  if (!modal || !modal.classList.contains('open')) return;
+  const mutationBlocked = !canMutateAccountData();
+  const cb = document.getElementById('confirm-delete-cb');
+  const btn = document.getElementById('btn-delete-forever');
+  if (cb) cb.disabled = mutationBlocked;
+  if (btn) btn.disabled = mutationBlocked;
+}
+
+function accountAccessBlockedTitle() {
+  return isAccountReadOnly() ? x('readOnlyModeLabel') : x('accountAccessUnavailableMessage');
+}
+
+function getSkeletalPanelForElement(el) {
+  return el && typeof el.closest === 'function' ? el.closest('[data-skeletal-panel]') : null;
+}
+
+function isHistoricalPreviewElement(el) {
+  return getSkeletalPanelForElement(el)?.dataset?.historicalPreview === 'true';
+}
+
+function getSkeletalControlView(el) {
+  return el?.dataset?.skeletalView || getSkeletalPanelForElement(el)?.dataset?.skeletalPanel || null;
+}
+
+function hasIndependentSessionDisabledReason(el) {
+  if (!el) return false;
+  if (isHistoricalPreviewElement(el)) return true;
+  const control = el.dataset?.skeletalControl;
+  const view = getSkeletalControlView(el);
+  if (control === 'undo') return !(skelHistory[view] || []).length;
+  if (control === 'redo') return !(skelFuture[view] || []).length;
+  return false;
+}
+
+function setAccountAccessDisabledState(el, blocked, independentlyDisabled = false) {
+  if (!el) return;
+  if (blocked) {
+    if (el.dataset.accountAccessDisabled !== 'true') {
+      el.dataset.accountAccessPreviousTitle = el.getAttribute('title') || '';
+    }
+    el.disabled = true;
+    el.dataset.accountAccessDisabled = 'true';
+    el.setAttribute('aria-disabled', 'true');
+    el.dataset.accountAccessTitle = accountAccessBlockedTitle();
+    el.title = el.dataset.accountAccessTitle;
+    return;
+  }
+  if (el.dataset.accountAccessDisabled === 'true') {
+    const previousTitle = el.dataset.accountAccessPreviousTitle || '';
+    delete el.dataset.accountAccessDisabled;
+    delete el.dataset.accountAccessTitle;
+    delete el.dataset.accountAccessPreviousTitle;
+    el.removeAttribute('aria-disabled');
+    if (!independentlyDisabled) el.disabled = false;
+    if (previousTitle) el.title = previousTitle;
+    else el.removeAttribute('title');
+  }
+  if (independentlyDisabled) el.disabled = true;
+}
+
+function setAccountAccessReadOnlyState(el, blocked, independentlyReadOnly = false) {
+  if (!el) return;
+  if (blocked) {
+    if (el.dataset.accountAccessReadonly !== 'true') {
+      el.dataset.accountAccessPreviousTitle = el.getAttribute('title') || '';
+    }
+    el.readOnly = true;
+    el.dataset.accountAccessReadonly = 'true';
+    el.setAttribute('aria-readonly', 'true');
+    el.dataset.accountAccessTitle = accountAccessBlockedTitle();
+    el.title = el.dataset.accountAccessTitle;
+    return;
+  }
+  if (el.dataset.accountAccessReadonly === 'true') {
+    const previousTitle = el.dataset.accountAccessPreviousTitle || '';
+    delete el.dataset.accountAccessReadonly;
+    delete el.dataset.accountAccessTitle;
+    delete el.dataset.accountAccessPreviousTitle;
+    if (!independentlyReadOnly) {
+      el.readOnly = false;
+      el.removeAttribute('aria-readonly');
+    }
+    if (previousTitle) el.title = previousTitle;
+    else el.removeAttribute('title');
+  }
+  if (independentlyReadOnly) {
+    el.readOnly = true;
+    el.setAttribute('aria-readonly', 'true');
+  }
+}
+
+function isTextEntryControl(el) {
+  if (!el) return false;
+  if (el.tagName === 'TEXTAREA') return true;
+  if (el.tagName !== 'INPUT') return false;
+  const type = String(el.type || 'text').toLowerCase();
+  return ['', 'text', 'search', 'email', 'url', 'tel', 'password'].includes(type);
+}
+
+function syncSkeletalPanelTitlePill(panel) {
+  if (!panel) return;
+  const pill = panel.querySelector('[data-skeletal-readonly-pill="true"]');
+  if (!pill) return;
+  const historical = panel.dataset.historicalPreview === 'true';
+  if (historical) {
+    pill.textContent = t('historicalPreviewReadonly');
+    pill.style.display = '';
+  } else if (isAccountReadOnly()) {
+    pill.textContent = x('readOnlyModeLabel');
+    pill.style.display = '';
+  } else {
+    pill.textContent = '';
+    pill.style.display = 'none';
+  }
+}
+
+function syncMarkerNoteConsultationButton(btn) {
+  if (!btn) return;
+  const historical = isHistoricalPreviewElement(btn);
+  const unavailable = !canMutateAccountData() && !isAccountReadOnly();
+  setAccountAccessDisabledState(btn, unavailable, historical);
+  if (!historical && !unavailable) {
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+  }
+}
+
+function syncSessionEditorMutationState() {
+  const container = document.getElementById('session-editor-content');
+  if (!container) return;
+  const mutationBlocked = !canMutateAccountData();
+  const activeEl = document.activeElement;
+
+  syncSessionAccountAccessNotice();
+
+  container.querySelectorAll('input, textarea, select').forEach(el => {
+    const independentlyBlocked = isHistoricalPreviewElement(el);
+    if (el.tagName === 'SELECT') {
+      const viewOnlyBlocked = el.dataset.accountViewControl === 'true' && !canMutateAccountData() && !isAccountReadOnly();
+      const blocked = el.dataset.accountViewControl === 'true' ? viewOnlyBlocked : mutationBlocked;
+      setAccountAccessDisabledState(el, blocked, independentlyBlocked);
+      if (!blocked && !independentlyBlocked) {
+        el.disabled = false;
+        el.removeAttribute('aria-disabled');
+      }
+      return;
+    }
+    if (isTextEntryControl(el)) {
+      setAccountAccessReadOnlyState(el, mutationBlocked, independentlyBlocked);
+      setAccountAccessDisabledState(el, false, independentlyBlocked && el.dataset.skeletalMarkerField === 'true');
+      if (!mutationBlocked && !independentlyBlocked) {
+        el.readOnly = false;
+        el.disabled = false;
+        el.removeAttribute('aria-readonly');
+        el.removeAttribute('aria-disabled');
+      }
+      return;
+    }
+    if (String(el.type || '').toLowerCase() === 'hidden') return;
+    setAccountAccessDisabledState(el, mutationBlocked, independentlyBlocked);
+    if (!mutationBlocked && !independentlyBlocked) {
+      el.disabled = false;
+      el.removeAttribute('aria-disabled');
+    }
+  });
+
+  container.querySelectorAll('[data-account-mutation-control="true"]').forEach(el => {
+    const independentlyDisabled = hasIndependentSessionDisabledReason(el);
+    setAccountAccessDisabledState(el, mutationBlocked, independentlyDisabled);
+    if (!mutationBlocked && !independentlyDisabled) {
+      el.disabled = false;
+      el.removeAttribute('aria-disabled');
+    }
+  });
+
+  container.querySelectorAll('[data-marker-note-consultation="true"]').forEach(syncMarkerNoteConsultationButton);
+
+  container.querySelectorAll('[data-skeletal-panel]').forEach(panel => {
+    syncSkeletalPanelTitlePill(panel);
+    const historical = panel.dataset.historicalPreview === 'true';
+    const panelReadOnly = mutationBlocked || historical;
+    panel.querySelectorAll('.skeletal-canvas-wrap').forEach(el => {
+      el.classList.toggle('read-only', panelReadOnly);
+      el.style.cursor = panelReadOnly ? 'default' : 'crosshair';
+    });
+    panel.querySelectorAll('.marker-dot').forEach(el => {
+      el.style.cursor = panelReadOnly ? 'default' : '';
+    });
+  });
+
+  syncNoteModalReadOnlyState();
+  if (activeEl && typeof activeEl.focus === 'function' && document.activeElement !== activeEl) {
+    try { activeEl.focus(); } catch(e) { /* best effort */ }
+  }
+}
+
 function rememberDeferredSyncIfStartupBlocked() {
   if (isAccountAccessTemporarilyBlocked()) deferredSyncRequested = true;
 }
@@ -2825,7 +3166,9 @@ async function refreshAccountAccessState() {
   }
   const userId = currentUser.id;
   const requestSeq = ++accountAccessRefreshSeq;
+  const previousAccessState = { ...accountAccessState };
   accountAccessState = createDefaultAccountAccessState({ status: 'loading', userId });
+  applyAccountAccessUiState(previousAccessState, { silent: true });
   try {
     const data = await _sbFetch('/rest/v1/rpc/get_account_access_state', {
       method: 'POST',
@@ -2845,6 +3188,7 @@ async function refreshAccountAccessState() {
     };
     flushDeferredSyncIfAllowed();
     updateSyncIndicatorForAccountAccessState();
+    applyAccountAccessUiState(previousAccessState);
     return accountAccessState;
   } catch(e) {
     if (!currentUser || currentUser.id !== userId || requestSeq !== accountAccessRefreshSeq) return accountAccessState;
@@ -2856,6 +3200,7 @@ async function refreshAccountAccessState() {
     });
     deferredSyncRequested = false;
     updateSyncIndicatorForAccountAccessState();
+    applyAccountAccessUiState(previousAccessState);
     return accountAccessState;
   }
 }
@@ -3038,11 +3383,28 @@ function updateSyncIndicatorForAccountAccessState() {
     updateSyncIndicator();
     return;
   }
+
+  if (accountAccessState.status === 'unknown' || accountAccessState.status === 'loading') {
+    updateSyncIndicator('syncing');
+    return;
+  }
+
   if (accountAccessState.status === 'error') {
     updateSyncIndicator('error');
-  } else if (accountAccessState.status === 'ready' && accountAccessState.planState === 'free_read_only') {
-    resetSyncIndicator();
+    return;
   }
+
+  if (accountAccessState.status === 'ready' && accountAccessState.planState === 'free_read_only') {
+    resetSyncIndicator();
+    return;
+  }
+
+  if (accountAccessState.status === 'ready' && ACCOUNT_ACCESS_ALLOWED_STATES.has(accountAccessState.planState)) {
+    updateSyncIndicator('synced');
+    return;
+  }
+
+  updateSyncIndicator('error');
 }
 
 // ── CLOUD SYNC ───────────────────────────────────────
@@ -3097,8 +3459,8 @@ async function loadFromCloud() {
     if (Array.isArray(clients) && Array.isArray(sessions)) {
       appState.clients  = clients;
       appState.sessions = sessions;
-      normalizeState();
-      saveState();
+      normalizeState({ localOnly: true });
+      saveState({ localOnly: true, purpose: 'authoritative-cache' });
       return clients.length > 0 || sessions.length > 0;
     }
     return false;
@@ -3191,7 +3553,7 @@ function getClientSortMode() {
 function setClientSort(mode) {
   const allowed = new Set(['recent', 'az', 'za']);
   appState.ui.clientSort = allowed.has(mode) ? mode : 'recent';
-  saveState();
+  saveState({ localOnly: true, purpose: 'ui-preference' });
   renderClients();
 }
 function sortClientsList(clients) {
@@ -3421,7 +3783,7 @@ function restoreSavedNavigationContext() {
       if (session && client) {
         pendingRestoreOpenSectionIds = Array.isArray(ctx.openSectionIds) ? sanitizeOpenSectionIds(ctx.openSectionIds) : null;
         currentClientId = session.clientId;
-        editSession(session.id, { skipUnsavedGuard: true, skipContextWrite: true, restoreOpenSections: pendingRestoreOpenSectionIds });
+        editSession(session.id, { skipUnsavedGuard: true, skipContextWrite: true, restoreOpenSections: pendingRestoreOpenSectionIds, preserveScrollPosition: true });
         writeSavedNavigationContext({ view: 'session', clientId: session.clientId, sessionId: session.id, openSectionIds: pendingRestoreOpenSectionIds });
         pendingRestoreOpenSectionIds = null;
         return true;
@@ -3543,16 +3905,22 @@ function loadState(options = {}) {
 }
 
 function saveState(options = {}) {
-  const { localOnly = false } = options;
+  const { localOnly = false, purpose = 'account-mutation' } = options;
+  const accountMutation = purpose === 'account-mutation';
+  const cacheOnly = purpose === 'authoritative-cache' || purpose === 'system-normalization' || purpose === 'ui-preference';
+  if (accountMutation && !guardAccountDataMutation({ silent: true })) return false;
   try {
     localStorage.setItem(getUserScopedStorageKey(), JSON.stringify(appState));
-    if (!localOnly) scheduleSyncToCloud();
+    if (!localOnly && !cacheOnly) scheduleSyncToCloud();
+    return true;
   } catch(e) {
     showToast('Error saving data: ' + e.message, 'error');
+    return false;
   }
 }
 
-function normalizeState() {
+function normalizeState(options = {}) {
+  const { localOnly = isAccountReadOnly() } = options;
   let changed = false;
   if (!appState.ui || typeof appState.ui !== 'object') { appState.ui = {}; changed = true; }
   if (!appState.ui.usage || typeof appState.ui.usage !== 'object') { appState.ui.usage = { totalClientsCreated: 0, totalSessionsCreated: 0, sessionsCreatedByClient: {} }; changed = true; }
@@ -3596,7 +3964,7 @@ function normalizeState() {
   for (const [cid, cnt] of Object.entries(actualByClient)) {
     if ((usage.sessionsCreatedByClient[cid] || 0) < cnt) { usage.sessionsCreatedByClient[cid] = cnt; changed = true; }
   }
-  if (changed) saveState();
+  if (changed) saveState({ localOnly, purpose: 'system-normalization' });
 }
 
 function uid() {
@@ -3675,6 +4043,20 @@ function syncNavState(name) {
     if (moreBtn) moreBtn.classList.add('active');
   }
 }
+
+function resetViewScroll(viewName) {
+  const view = document.getElementById(`view-${viewName}`);
+  if (!view) return;
+  view.scrollTop = 0;
+  view.scrollLeft = 0;
+}
+
+function resetSessionViewScrollAfterOpen() {
+  const reset = () => resetViewScroll('session');
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(reset);
+  else setTimeout(reset, 0);
+}
+
 function showView(name, options = {}) {
   const { skipUnsavedGuard = false, skipContextWrite = false } = options;
   const activeView = document.querySelector('.view.active')?.id.replace('view-', '');
@@ -3691,6 +4073,7 @@ function showView(name, options = {}) {
   if (name === 'archive') renderArchive();
   if (name === 'trash') renderTrash();
   if (name === 'all-sessions') renderAllSessions();
+  if (name === 'backup') syncBackupReadOnlyState();
   if (name === 'search') {
     renderGlobalSearch();
     setTimeout(() => { const el = document.getElementById('global-search-input'); if(el) el.focus(); }, 80);
@@ -3849,10 +4232,12 @@ function renderPlanSummary() {
       <span class="plan-pill">📊 ${currentLang === 'it' ? 'Sessioni free usate' : 'Free sessions used'}: <strong>${tier === 'premium' ? x('unlimitedLabel') : totalUsed + '/' + FREE_PLAN_LIMITS.totalSessions}</strong></span>
       <span class="plan-pill">⏳ ${currentLang === 'it' ? 'Sessioni free rimaste' : 'Free sessions remaining'}: <strong>${tier === 'premium' ? x('unlimitedLabel') : totalRemaining}</strong></span>
     </div>
+    ${renderReadOnlyBanner()}
     ${warningHtml}
     ${upgrade}`;
 }
 function updateClientStatus(clientId, status) {
+  if (!guardAccountDataMutation()) return;
   if (currentClientId === clientId && !confirmDiscardUnsavedSessionChanges()) return;
   const idx = appState.clients.findIndex(c => c.id === clientId);
   if (idx === -1) return;
@@ -3863,7 +4248,7 @@ function updateClientStatus(clientId, status) {
   appState.clients[idx].status = status;
   appState.clients[idx].archivedAt = status === 'archived' ? new Date().toISOString() : null;
   appState.clients[idx].updatedAt = new Date().toISOString();
-  saveState();
+  saveState({ purpose: 'account-mutation' });
   showToast(x('clientStatusUpdated'), 'success');
   if (currentClientId === clientId) renderProfile();
   renderClients();
@@ -3877,6 +4262,7 @@ function renderClients() {
     const sortSelect = document.getElementById('client-sort');
     if (sortSelect) sortSelect.value = getClientSortMode();
     renderPlanSummary();
+    syncClientMutationEntryState();
     const allTags = new Set();
     appState.clients.filter(c => !c.isTrashed && (c.status || 'active') !== 'archived').forEach(c => (c.tags || []).forEach(t => allTags.add(t)));
     const tf = document.getElementById('tag-filter');
@@ -3893,7 +4279,7 @@ function renderClients() {
     if (clients.length === 0) {
       const noClientsMsg = currentLang === 'it' ? 'Nessun cliente nello spazio di lavoro attivo' : 'No clients in the active workspace';
       const addFirstMsg = currentLang === 'it' ? 'Aggiungi il primo cliente oppure riattivane uno dall’archivio.' : 'Add your first client or restore one from the archive.';
-      list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">${noClientsMsg}</div><p style="margin-bottom:20px;">${addFirstMsg}</p><button class="btn btn-primary" onclick="openAddClient()" style="font-size:15px;padding:12px 28px;">${t('btnAddClient')}</button></div>`;
+      list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-title">${noClientsMsg}</div><p style="margin-bottom:20px;">${addFirstMsg}</p><button class="btn btn-primary" onclick="openAddClient()" ${readOnlyDisabledAttrs()} style="font-size:15px;padding:12px 28px;">${t('btnAddClient')}</button></div>`;
       return;
     }
     list.innerHTML = clients.map(c => {
@@ -3914,6 +4300,8 @@ function renderClients() {
           reminderHtml = `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:10px;background:#fef9c3;color:#854d0e;font-family:var(--font-mono);margin-left:6px;">● ${daysSince}${t('daysAgo')}</span>`;
         }
       }
+      const readOnly = isAccountReadOnly();
+      const roAttrs = readOnlyDisabledAttrs();
       const sessionLimitPill = !isPremiumPlan() && (c.status || 'active') !== 'archived'
         ? `<span class="plan-pill" style="margin-top:6px;">📝 ${getClientSessionQuotaUsed(c.id)}/${FREE_PLAN_LIMITS.sessionsPerClient}</span>`
         : '';
@@ -3926,8 +4314,8 @@ function renderClients() {
           <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">${tagsHtml}${sessionLimitPill}</div>
         </div>
         <div class="client-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="openEditClient('${c.id}')" title="Edit">✏️</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="trashClient('${c.id}')" title="Move to Trash">🗑️</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="openEditClient('${c.id}')" title="Edit" ${roAttrs}>✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="trashClient('${c.id}')" title="Move to Trash" ${roAttrs}>🗑️</button>
         </div>
       </div>`;
     }).join('');
@@ -3960,6 +4348,7 @@ function openClient(clientId, options = {}) {
 // CLIENT FORM
 // ════════════════════════════════════════════════════════
 function openAddClient() {
+  if (!guardAccountDataMutation()) return;
   if (!canCreateClientCard()) {
     showToast(x('freeClientCreationLimitReached'), 'error');
     return;
@@ -3978,9 +4367,11 @@ function openAddClient() {
   const statusWrap = document.getElementById('cf-status-wrap');
   if (statusWrap) statusWrap.style.display = 'none';
   openModal('modal-client');
+  syncClientModalReadOnlyState();
 }
 
 function openEditClient(clientId) {
+  if (!guardAccountDataMutation()) return;
   editingClientId = clientId;
   const c = appState.clients.find(x => x.id === clientId);
   if (!c) return;
@@ -3993,9 +4384,11 @@ function openEditClient(clientId) {
   const statusWrap = document.getElementById('cf-status-wrap');
   if (statusWrap) statusWrap.style.display = '';
   openModal('modal-client');
+  syncClientModalReadOnlyState();
 }
 
 function saveClient() {
+  if (!guardAccountDataMutation()) return;
   try {
     const name = document.getElementById('cf-name').value.trim();
     if (!name) { showToast(currentLang==='it'?'Il nome è obbligatorio':'Name is required', 'error'); return; }
@@ -4040,7 +4433,7 @@ function saveClient() {
       triggerNewClientHighlight(client.id);
       showToast(t('clientAdded'), 'success');
     }
-    saveState();
+    if (!saveState({ purpose: 'account-mutation' })) return;
     closeModal('modal-client');
     if (!editingClientId) showView('clients', { skipUnsavedGuard: true });
     renderClients();
@@ -4052,13 +4445,14 @@ function saveClient() {
 }
 
 function trashClient(clientId) {
+  if (!guardAccountDataMutation()) return;
   if (currentClientId === clientId && !confirmDiscardUnsavedSessionChanges()) return;
   try {
     const idx = appState.clients.findIndex(c => c.id === clientId);
     if (idx !== -1) {
       appState.clients[idx].isTrashed = true;
       appState.clients[idx].trashedAt = new Date().toISOString();
-      saveState();
+      saveState({ purpose: 'account-mutation' });
       showToast(currentLang==='it'?'Allievo spostato nel cestino':'Client moved to trash', 'success');
       renderClients();
       renderArchive();
@@ -4159,6 +4553,9 @@ function renderProfile() {
     const usagePill = !isPremiumPlan() && (c.status || 'active') !== 'archived'
       ? `<span class="plan-pill">${x('profileUsage')}: ${getClientSessionQuotaUsed(c.id)}/${FREE_PLAN_LIMITS.sessionsPerClient}</span>`
       : `<span class="plan-pill">${x('profileUsage')}: ${sessions.length}</span>`;
+    const readOnly = isAccountReadOnly();
+    const roAttrs = readOnlyDisabledAttrs();
+    const sessionActionLabel = canMutateAccountData() ? t('editSession') : x('viewSession');
 
     const sessionsHtml = sessions.length === 0
       ? `<div class="empty-state" style="padding:24px;"><div class="empty-state-icon">📋</div><p>${t('noSessionsYet')}</p></div>`
@@ -4177,9 +4574,9 @@ function renderProfile() {
                 <div class="session-metrics" style="margin-top:6px;">${metricsHtml}${skelSummary}</div>
               </div>
               <div class="session-card-actions" style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
-                <button class="btn btn-secondary btn-sm" data-sid="${s.id}" data-act="edit">${t('editSession')}</button>
-                <button class="btn btn-secondary btn-sm" data-sid="${s.id}" data-act="dup">${x('duplicateSession')}</button>
-                <button class="btn btn-danger btn-sm" data-sid="${s.id}" data-act="del">${t('deleteSession')}</button>
+                <button class="btn btn-secondary btn-sm" data-sid="${s.id}" data-act="edit">${sessionActionLabel}</button>
+                <button class="btn btn-secondary btn-sm" data-sid="${s.id}" data-act="dup" ${roAttrs}>${x('duplicateSession')}</button>
+                <button class="btn btn-danger btn-sm" data-sid="${s.id}" data-act="del" ${roAttrs}>${t('deleteSession')}</button>
               </div>
             </div>
           </div>`;
@@ -4187,8 +4584,8 @@ function renderProfile() {
 
     const chartHtml = buildMetricsChart(c.id);
     const archiveBtn = (c.status || 'active') === 'archived'
-      ? `<button class="btn btn-secondary" onclick="updateClientStatus('${c.id}','active')">${x('restoreActive')}</button>`
-      : `<button class="btn btn-secondary" onclick="updateClientStatus('${c.id}','archived')">${x('archiveClient')}</button>`;
+      ? `<button class="btn btn-secondary" onclick="updateClientStatus('${c.id}','active')" ${roAttrs}>${x('restoreActive')}</button>`
+      : `<button class="btn btn-secondary" onclick="updateClientStatus('${c.id}','archived')" ${roAttrs}>${x('archiveClient')}</button>`;
     const newSessionDisabled = !canCreateSessionForClient(c.id)
       ? `disabled title="${x('freeSessionLimitReached')}" style="opacity:.65;cursor:not-allowed;"`
       : '';
@@ -4205,10 +4602,10 @@ function renderProfile() {
         </div>
         <div class="btn-group">
           ${archiveBtn}
-          <button class="btn btn-secondary" onclick="openEditClient('${c.id}')">${t('editProfile')}</button>
+          <button class="btn btn-secondary" onclick="openEditClient('${c.id}')" ${roAttrs}>${t('editProfile')}</button>
           ${pdfBtn}
-          <button class="btn btn-primary" onclick="newSession()" ${newSessionDisabled}>${t('newSession')}</button>
-          <button class="btn btn-danger" onclick="trashClient('${c.id}')" title="${x('moveClientToTrash')}" aria-label="${x('moveClientToTrash')}">🗑️ ${t('deleteClientShort')}</button>
+          <button class="btn btn-primary" onclick="newSession()" ${!canMutateAccountData() ? roAttrs : newSessionDisabled}>${t('newSession')}</button>
+          <button class="btn btn-danger" onclick="trashClient('${c.id}')" ${roAttrs} title="${x('moveClientToTrash')}" aria-label="${x('moveClientToTrash')}">🗑️ ${t('deleteClientShort')}</button>
         </div>
       </div>
       <div class="card-grid cols2" style="margin-bottom:20px;">
@@ -4234,6 +4631,7 @@ function renderProfile() {
 }
 
 function deleteSession(sessionId) {
+  if (!guardAccountDataMutation()) return;
   const deletingCurrentSession = currentSessionId === sessionId;
   if (deletingCurrentSession && !confirmDiscardUnsavedSessionChanges()) return;
   if (deletingCurrentSession) clearSkeletalPreview();
@@ -4242,7 +4640,7 @@ function deleteSession(sessionId) {
     if (idx === -1) { showToast(currentLang==='it'?'Sessione non trovata':'Session not found', 'error'); return; }
     appState.sessions[idx].isTrashed = true;
     appState.sessions[idx].trashedAt = new Date().toISOString();
-    saveState();
+    saveState({ purpose: 'account-mutation' });
     renderProfile();
     renderClients();
     if (currentSessionId === sessionId) { currentSessionId = null; clearSessionDraftBaseline(); persistClientProfileContext(appState.sessions[idx]?.clientId || currentClientId); }
@@ -4253,6 +4651,7 @@ function deleteSession(sessionId) {
 }
 
 function duplicateSession(sessionId, options = {}) {
+  if (!guardAccountDataMutation()) return false;
   const { skipUnsavedGuard = false } = options;
   if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
   clearSkeletalPreview();
@@ -4277,12 +4676,14 @@ function duplicateSession(sessionId, options = {}) {
   persistClientProfileContext(src.clientId);
   renderSessionEditor();
   showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  resetSessionViewScrollAfterOpen();
   showToast(x('duplicateCreated'), 'success');
   return true;
 }
 
 
 function newSession() {
+  if (!guardAccountDataMutation()) return;
   if (!currentClientId) return;
   clearSkeletalPreview();
   if (!canCreateSessionForClient(currentClientId)) {
@@ -4308,10 +4709,11 @@ function newSession() {
   persistClientProfileContext(currentClientId);
   renderSessionEditor();
   showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  resetSessionViewScrollAfterOpen();
 }
 
 function editSession(sessionId, options = {}) {
-  const { skipUnsavedGuard = false, skipContextWrite = false, restoreOpenSections = null } = options;
+  const { skipUnsavedGuard = false, skipContextWrite = false, restoreOpenSections = null, preserveScrollPosition = false } = options;
   if (!skipUnsavedGuard && !confirmDiscardUnsavedSessionChanges()) return false;
   clearSkeletalPreview();
   const s = appState.sessions.find(x => x.id === sessionId && !x.isTrashed);
@@ -4330,8 +4732,24 @@ function editSession(sessionId, options = {}) {
   renderSessionEditor();
   applyOpenSectionIds(restoreOpenSections ?? pendingRestoreOpenSectionIds ?? null);
   showView('session', { skipUnsavedGuard: true, skipContextWrite: true });
+  if (!preserveScrollPosition) resetSessionViewScrollAfterOpen();
   if (!skipContextWrite) persistSavedSessionContext(sessionId);
   return true;
+}
+
+function clearSessionMetric(metricKey, button) {
+  if (!guardAccountDataMutation()) return;
+  if (!sessionDraft.metrics || typeof sessionDraft.metrics !== 'object') sessionDraft.metrics = {};
+  markSessionDraftDirty();
+  sessionDraft.metrics[metricKey] = null;
+
+  const valueEl = document.getElementById(`sv-${metricKey}`);
+  if (valueEl) valueEl.textContent = '–';
+
+  const slider = button
+    ?.closest('.slider-wrap')
+    ?.querySelector('input[type="range"]');
+  if (slider) slider.value = '5';
 }
 
 function renderSessionEditor() {
@@ -4339,6 +4757,10 @@ function renderSessionEditor() {
     const c = appState.clients.find(x => x.id === (sessionDraft.clientId || currentClientId));
     const clientName = c ? c.name : '?';
     const isNew = !currentSessionId;
+    const readOnly = isAccountReadOnly();
+    const textRo = readOnlyInputAttrs();
+    const controlDisabled = readOnlyInputAttrs({ readonly: false });
+    const saveDisabled = readOnlyDisabledAttrs();
 
     // Structural grid — columns translated
     const structCols = currentLang === 'it'
@@ -4347,7 +4769,7 @@ function renderSessionEditor() {
     let gridRows = STRUCT_ROWS.map(row => {
       const cells = STRUCT_COLS.map((col, i) => {
         const val = (sessionDraft.structuralObservationGrid || {})[row + '_' + col] || '';
-        return `<td><input type="text" value="${esc(val)}" onchange="sessionDraft.structuralObservationGrid['${row}_${col}']=this.value" placeholder="…" autocomplete="off"></td>`;
+        return `<td><input type="text" value="${esc(val)}" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.structuralObservationGrid['${row}_${col}']=this.value" placeholder="…" autocomplete="off"></td>`;
       }).join('');
       return `<tr><td style="padding:6px 10px;font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);white-space:nowrap;">${row}</td>${cells}</tr>`;
     }).join('');
@@ -4366,11 +4788,11 @@ function renderSessionEditor() {
       return `<div class="slider-wrap">
         <span class="slider-label">${f.label}</span>
         <div class="slider-track">
-          <input type="range" min="0" max="10" step="1" value="${rangeVal}"
-            oninput="sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;">
+          <input type="range" min="0" max="10" step="1" value="${rangeVal}" ${controlDisabled}
+            oninput="if(canMutateAccountData()){sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;}">
         </div>
         <span class="slider-val" id="sv-${f.key}">${displayVal}</span>
-        <button type="button" class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="markSessionDraftDirty();sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;" title="Clear">✕</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-account-mutation-control="true" ${controlDisabled} style="font-size:10px;padding:2px 6px;" onclick="clearSessionMetric('${f.key}', this)" title="Clear">✕</button>
       </div>`;
     }).join('');
 
@@ -4386,9 +4808,10 @@ function renderSessionEditor() {
         </div>
         <div class="btn-group editor-topbar-actions">
 	          <button type="button" class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
-	          <button type="button" class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
+	          <button type="button" class="btn btn-primary" data-account-mutation-control="true" onclick="saveSession()" ${saveDisabled}>${t('saveSession')}</button>
         </div>
       </div>
+      <div id="session-account-access-notice">${renderSessionAccountAccessNotice()}</div>
 
       <div class="form-section open" data-section-id="session-info">
         <div class="form-section-header" onclick="toggleSection(this)">
@@ -4399,23 +4822,23 @@ function renderSessionEditor() {
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('dateLabel')}</label>
-	              <input type="date" id="s-date" value="${sessionDraft.date}" onchange="sessionDraft.date=this.value" autocomplete="off">
+	              <input type="date" id="s-date" value="${sessionDraft.date}" ${controlDisabled} onchange="if(canMutateAccountData()) sessionDraft.date=this.value" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('durationLabel')}</label>
-	              <input type="number" id="s-duration" value="${sessionDraft.durationMinutes || ''}" min="0" max="300" onchange="sessionDraft.durationMinutes=this.value?parseInt(this.value):null" placeholder="${durationPlaceholder}" autocomplete="off">
+	              <input type="number" id="s-duration" value="${sessionDraft.durationMinutes || ''}" min="0" max="300" ${controlDisabled} onchange="if(canMutateAccountData()) sessionDraft.durationMinutes=this.value?parseInt(this.value):null" placeholder="${durationPlaceholder}" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('locationLabel')}</label>
-	              <input type="text" id="s-location" value="${esc(sessionDraft.locationContext || '')}" onchange="sessionDraft.locationContext=this.value" placeholder="${t('locationPlaceholder')}" autocomplete="off">
+	              <input type="text" id="s-location" value="${esc(sessionDraft.locationContext || '')}" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.locationContext=this.value" placeholder="${t('locationPlaceholder')}" autocomplete="off">
             </div>
             <div class="form-field">
               <label class="label">${t('sessionTagsLabel')}</label>
-	              <input type="text" id="s-tags" value="${esc((sessionDraft.sessionTags || []).join(', '))}" onchange="sessionDraft.sessionTags=this.value.split(',').map(x=>x.trim()).filter(Boolean)" placeholder="${t('sessionTagsPlaceholder')}" autocomplete="off">
+	              <input type="text" id="s-tags" value="${esc((sessionDraft.sessionTags || []).join(', '))}" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.sessionTags=this.value.split(',').map(x=>x.trim()).filter(Boolean)" placeholder="${t('sessionTagsPlaceholder')}" autocomplete="off">
             </div>
           </div>
           <div class="consent-row" style="margin-top:14px;">
-            <input type="checkbox" id="s-consent" ${sessionDraft.consentObtained ? 'checked' : ''} onchange="sessionDraft.consentObtained=this.checked">
+            <input type="checkbox" id="s-consent" ${sessionDraft.consentObtained ? 'checked' : ''} ${controlDisabled} onchange="if(canMutateAccountData()) sessionDraft.consentObtained=this.checked">
             <label for="s-consent" style="font-size:13px;cursor:pointer;">${t('consentLabel')}</label>
           </div>
         </div>
@@ -4427,7 +4850,7 @@ function renderSessionEditor() {
           <span class="form-section-arrow">▼</span>
         </div>
         <div class="form-section-body">
-	          <textarea id="s-goal" onchange="sessionDraft.studentRequestGoal=this.value" placeholder="${t('studentRequestPlaceholder')}" style="min-height:100px;" autocomplete="off">${esc(sessionDraft.studentRequestGoal || '')}</textarea>
+	          <textarea id="s-goal" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.studentRequestGoal=this.value" placeholder="${t('studentRequestPlaceholder')}" style="min-height:100px;" autocomplete="off">${esc(sessionDraft.studentRequestGoal || '')}</textarea>
         </div>
       </div>
 
@@ -4456,15 +4879,15 @@ function renderSessionEditor() {
           <div class="form-grid">
             <div class="form-field">
               <label class="label">${t('functionalHypLabel')}</label>
-	              <textarea onchange="sessionDraft.functionalHypothesis=this.value" placeholder="${t('functionalHypPlaceholder')}" autocomplete="off">${esc(sessionDraft.functionalHypothesis || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.functionalHypothesis=this.value" placeholder="${t('functionalHypPlaceholder')}" autocomplete="off">${esc(sessionDraft.functionalHypothesis || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('keyConstraintsLabel')}</label>
-	              <textarea onchange="sessionDraft.keyConstraints=this.value" placeholder="${t('keyConstraintsPlaceholder')}" autocomplete="off">${esc(sessionDraft.keyConstraints || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.keyConstraints=this.value" placeholder="${t('keyConstraintsPlaceholder')}" autocomplete="off">${esc(sessionDraft.keyConstraints || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('lessonStrategyLabel')}</label>
-	              <textarea onchange="sessionDraft.lessonStrategy=this.value" placeholder="${t('lessonStrategyPlaceholder')}" autocomplete="off">${esc(sessionDraft.lessonStrategy || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.lessonStrategy=this.value" placeholder="${t('lessonStrategyPlaceholder')}" autocomplete="off">${esc(sessionDraft.lessonStrategy || '')}</textarea>
             </div>
           </div>
         </div>
@@ -4479,15 +4902,15 @@ function renderSessionEditor() {
           <div class="form-grid">
             <div class="form-field">
               <label class="label">${t('outcomesLabel')}</label>
-	              <textarea onchange="sessionDraft.outcomesImmediate=this.value" placeholder="${t('outcomesPlaceholder')}" autocomplete="off">${esc(sessionDraft.outcomesImmediate || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.outcomesImmediate=this.value" placeholder="${t('outcomesPlaceholder')}" autocomplete="off">${esc(sessionDraft.outcomesImmediate || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('followUpLabel')}</label>
-	              <textarea onchange="sessionDraft.followUpNextTime=this.value" placeholder="${t('followUpPlaceholder')}" autocomplete="off">${esc(sessionDraft.followUpNextTime || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.followUpNextTime=this.value" placeholder="${t('followUpPlaceholder')}" autocomplete="off">${esc(sessionDraft.followUpNextTime || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('ahaMomentLabel')}</label>
-	              <textarea onchange="sessionDraft.ahaMoment=this.value" placeholder="${t('ahaMomentPlaceholder')}" autocomplete="off">${esc(sessionDraft.ahaMoment || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.ahaMoment=this.value" placeholder="${t('ahaMomentPlaceholder')}" autocomplete="off">${esc(sessionDraft.ahaMoment || '')}</textarea>
             </div>
           </div>
         </div>
@@ -4502,7 +4925,7 @@ function renderSessionEditor() {
           ${slidersHtml}
           <div class="form-field" style="margin-top:10px;">
             <label class="label">${t('metricNotesLabel')}</label>
-	            <textarea onchange="sessionDraft.metrics.metricNotes=this.value" placeholder="${t('metricNotesPlaceholder')}" autocomplete="off">${esc((sessionDraft.metrics && sessionDraft.metrics.metricNotes) || '')}</textarea>
+	            <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.metrics.metricNotes=this.value" placeholder="${t('metricNotesPlaceholder')}" autocomplete="off">${esc((sessionDraft.metrics && sessionDraft.metrics.metricNotes) || '')}</textarea>
           </div>
         </div>
       </div>
@@ -4517,13 +4940,13 @@ function renderSessionEditor() {
           <div class="form-grid cols2">
             <div class="form-field">
               <label class="label">${t('homeSuggestionLabel')}</label>
-	              <textarea onchange="sessionDraft.homeSuggestion=this.value" placeholder="${t('homeSuggestionPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeSuggestion || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.homeSuggestion=this.value" placeholder="${t('homeSuggestionPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeSuggestion || '')}</textarea>
             </div>
             <div class="form-field">
               <label class="label">${t('homeFrequencyLabel')}</label>
-	              <input type="text" onchange="sessionDraft.homeFrequency=this.value" value="${esc(sessionDraft.homeFrequency || '')}" placeholder="${t('homeFrequencyPlaceholder')}" autocomplete="off">
+	              <input type="text" ${textRo} onchange="if(canMutateAccountData()) sessionDraft.homeFrequency=this.value" value="${esc(sessionDraft.homeFrequency || '')}" placeholder="${t('homeFrequencyPlaceholder')}" autocomplete="off">
               <label class="label" style="margin-top:10px;">${t('homeNotesLabel')}</label>
-	              <textarea onchange="sessionDraft.homeNotes=this.value" placeholder="${t('homeNotesPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeNotes || '')}</textarea>
+	              <textarea ${textRo} onchange="if(canMutateAccountData()) sessionDraft.homeNotes=this.value" placeholder="${t('homeNotesPlaceholder')}" autocomplete="off">${esc(sessionDraft.homeNotes || '')}</textarea>
             </div>
           </div>
         </div>
@@ -4541,11 +4964,11 @@ function renderSessionEditor() {
 
       <div style="margin-top:10px;" class="btn-group editor-bottom-actions">
 	        <button type="button" class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
-	        <button type="button" class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
+	        <button type="button" class="btn btn-primary" data-account-mutation-control="true" onclick="saveSession()" ${saveDisabled}>${t('saveSession')}</button>
       </div>
       <div class="mobile-sticky-actions">
 	        <button type="button" class="btn btn-secondary" onclick="cancelSession()">${t('cancelBtn')}</button>
-	        <button type="button" class="btn btn-primary" onclick="saveSession()">${t('saveSession')}</button>
+	        <button type="button" class="btn btn-primary" data-account-mutation-control="true" onclick="saveSession()" ${saveDisabled}>${t('saveSession')}</button>
       </div>
     `;
 
@@ -4591,6 +5014,7 @@ function cancelSession() {
 }
 
 function saveSession() {
+  if (!guardAccountDataMutation()) return;
   try {
     clearSkeletalPreview();
     const date = document.getElementById('s-date')?.value || sessionDraft.date;
@@ -4612,7 +5036,7 @@ function saveSession() {
       currentSessionId = sessionDraft.id;
       showToast(t('sessionSaved'), 'success');
     }
-    saveState();
+    if (!saveState({ purpose: 'account-mutation' })) return;
     captureSessionDraftBaseline();
     sessionDraftPotentiallyDirty = false;
     sessionDraftRequiresInitialSave = false;
@@ -4644,6 +5068,7 @@ function skelPush(view) {
   skelFuture[view] = [];
 }
 function skelUndo(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   if (!skelHistory[view].length) { showToast(t('nothingToUndo'), 'info'); return; }
   skelFuture[view].push(skelSnapshot(view));
@@ -4653,6 +5078,7 @@ function skelUndo(view) {
   rerenderSkeletalPanel(view);
 }
 function skelRedo(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   if (!skelFuture[view].length) { showToast(t('nothingToRedo'), 'info'); return; }
   skelHistory[view].push(skelSnapshot(view));
@@ -4730,7 +5156,9 @@ function buildSkeletalPanel(view) {
   const displayData = getSkeletalDisplayData(view);
   const markers = displayData.markers;
   const connections = displayData.connections;
-  const readOnly = displayData.readOnly;
+  const historicalPreviewReadOnly = displayData.readOnly;
+  const mutationBlocked = !canMutateAccountData();
+  const readOnly = historicalPreviewReadOnly || mutationBlocked;
   const svgContent  = view === 'front' ? SVG_FRONT : SVG_BACK;
   const canUndo = !readOnly && (skelHistory[view]||[]).length > 0;
   const canRedo = !readOnly && (skelFuture[view]||[]).length > 0;
@@ -4741,7 +5169,7 @@ function buildSkeletalPanel(view) {
     return `<div class="marker-dot" id="mdot-${view}-${m.id}"
       style="left:${m.x*100}%;top:${m.y*100}%;background:transparent;border:none;width:18px;height:18px;display:flex;align-items:center;justify-content:center;"
       title="${m.label} · ${normalizeMarkerType(m.type)||'Attention'}${m.note?' · '+m.note:''}"
-      onclick="event.stopPropagation();${readOnly ? '' : `handleMarkerClick('${view}','${m.id}')`}">${sym}</div>`;
+      onclick="event.stopPropagation();handleMarkerClick('${view}','${m.id}')">${sym}</div>`;
   }).join('');
 
   const arrowsHtml = `<svg class="arrow-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -4776,30 +5204,30 @@ function buildSkeletalPanel(view) {
     const typeOpts = MARKER_TYPE_KEYS.map(t=>`<option value="${t}" ${t===(normalizeMarkerType(m.type)||'Attention')?'selected':''}>${MARKER_TYPES[t].symbol} ${t}</option>`).join('');
     return `<tr>
       <td style="text-align:center;">${markerSymbolSVG(m.type||'Attention',color)}</td>
-      <td><select ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','label',this.value)">${zoneOpts}</select></td>
-      <td><select ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','type',this.value)">${typeOpts}</select></td>
+      <td><select data-skeletal-marker-field="true" ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','label',this.value)">${zoneOpts}</select></td>
+      <td><select data-skeletal-marker-field="true" ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" onchange="updateMarker('${view}','${m.id}','type',this.value)">${typeOpts}</select></td>
       <td class="marker-note-cell">
         <div class="note-cell-inner">
-          <input type="text" ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;flex:1;min-width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" value="${esc(m.note||'')}" placeholder="note…" onchange="updateMarker('${view}','${m.id}','note',this.value)" autocomplete="off">
-          <button class="note-expand-btn" ${readOnly ? 'disabled' : ''} title="Expand note" onclick="openNoteModal('${view}','${m.id}')">⤢</button>
+          <input type="text" data-skeletal-marker-field="true" ${readOnly ? 'disabled' : ''} style="font-size:10px;padding:2px 4px;flex:1;min-width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);" value="${esc(m.note||'')}" placeholder="note…" onchange="updateMarker('${view}','${m.id}','note',this.value)" autocomplete="off">
+          <button class="note-expand-btn" data-marker-note-consultation="true" ${(historicalPreviewReadOnly || (mutationBlocked && !isAccountReadOnly())) ? 'disabled' : ''} title="Expand note" onclick="openNoteModal('${view}','${m.id}')">⤢</button>
         </div>
       </td>
-      <td class="marker-delete-cell"><button class="btn btn-danger btn-sm" ${readOnly ? 'disabled' : ''} onclick="removeMarker('${view}','${m.id}')" style="padding:2px 6px;font-size:10px;min-width:30px;justify-content:center;">✕</button></td>
+      <td class="marker-delete-cell"><button class="btn btn-danger btn-sm" data-account-mutation-control="true" data-skeletal-control="remove-marker" data-skeletal-view="${view}" ${readOnly ? 'disabled' : ''} onclick="removeMarker('${view}','${m.id}')" style="padding:2px 6px;font-size:10px;min-width:30px;justify-content:center;">✕</button></td>
     </tr>`;
   }).join('');
 
-  return `<div class="skeletal-panel">
-    <div class="skeletal-panel-title">${view==='front'?t('frontView'):t('backView')}${readOnly ? ` <span class="readonly-pill">${t('historicalPreviewReadonly')}</span>` : ''}</div>
+  return `<div class="skeletal-panel" data-skeletal-panel="${view}" data-historical-preview="${historicalPreviewReadOnly ? 'true' : 'false'}">
+    <div class="skeletal-panel-title"><span data-skeletal-title-label="true">${view==='front'?t('frontView'):t('backView')}</span><span class="readonly-pill" data-skeletal-readonly-pill="true" style="${(historicalPreviewReadOnly || isAccountReadOnly()) ? '' : 'display:none;'}">${historicalPreviewReadOnly ? t('historicalPreviewReadonly') : isAccountReadOnly() ? x('readOnlyModeLabel') : ''}</span></div>
     <div class="skeletal-canvas-wrap ${readOnly ? 'read-only' : ''}" id="skel-wrap-${view}" style="position:relative;cursor:${readOnly ? 'default' : 'crosshair'};">
       ${svgContent}
       ${arrowsHtml}
       ${markersHtml}
     </div>
     <div class="skeletal-panel-controls">
-      <button class="btn btn-secondary btn-sm" onclick="skelUndo('${view}')" ${canUndo?'':'disabled'}>${t('undoBtn')}</button>
-      <button class="btn btn-secondary btn-sm" onclick="skelRedo('${view}')" ${canRedo?'':'disabled'}>${t('redoBtn')}</button>
-      <button class="btn btn-ghost btn-sm" onclick="startConnectMode('${view}')" ${readOnly?'disabled':''}>${t('connectBtn')}</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearConnections('${view}')" ${readOnly?'disabled':''}>${t('clearArrowsBtn')}</button>
+      <button class="btn btn-secondary btn-sm" data-account-mutation-control="true" data-skeletal-control="undo" data-skeletal-view="${view}" onclick="skelUndo('${view}')" ${canUndo?'':'disabled'}>${t('undoBtn')}</button>
+      <button class="btn btn-secondary btn-sm" data-account-mutation-control="true" data-skeletal-control="redo" data-skeletal-view="${view}" onclick="skelRedo('${view}')" ${canRedo?'':'disabled'}>${t('redoBtn')}</button>
+      <button class="btn btn-ghost btn-sm" data-account-mutation-control="true" data-skeletal-control="connect" data-skeletal-view="${view}" onclick="startConnectMode('${view}')" ${readOnly?'disabled':''}>${t('connectBtn')}</button>
+      <button class="btn btn-ghost btn-sm" data-account-mutation-control="true" data-skeletal-control="clear" data-skeletal-view="${view}" onclick="clearConnections('${view}')" ${readOnly?'disabled':''}>${t('clearArrowsBtn')}</button>
     </div>
     ${markers.length > 0 ? `<div class="skeletal-marker-table-wrap" style="margin-top:10px;">
       <div class="skeletal-scroll-hint">${currentLang === 'it' ? '↔ Scorri orizzontalmente' : '↔ Swipe horizontally'}</div>
@@ -4809,11 +5237,12 @@ function buildSkeletalPanel(view) {
           <tbody>${tableRowsHtml}</tbody>
         </table>
       </div>
-    </div>` : `<p class="note-small" style="text-align:center;margin-top:10px;">${readOnly ? t('historicalPreviewReadonly') : t('clickSilhouette')}</p>`}
+    </div>` : `<p class="note-small" style="text-align:center;margin-top:10px;">${historicalPreviewReadOnly ? t('historicalPreviewReadonly') : isAccountReadOnly() ? x('readOnlyModeLabel') : mutationBlocked ? x('accountAccessUnavailableMessage') : t('clickSilhouette')}</p>`}
   </div>`;
 }
 
 function handleSkelClick(e, view) {
+  if (!guardAccountDataMutation()) return;
   if (e.target.closest('.marker-dot')) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   const wrap = document.getElementById(`skel-wrap-${view}`);
@@ -4841,9 +5270,11 @@ function openNoteModal(view, markerId) {
   document.getElementById('modal-note-label').textContent = `${m.label} · ${normalizeMarkerType(m.type)||'Attention'}`;
   document.getElementById('modal-note-text').value = m.note || '';
   openModal('modal-note');
+  syncNoteModalReadOnlyState();
   setTimeout(() => document.getElementById('modal-note-text').focus(), 100);
 }
 function saveNoteModal() {
+  if (!guardAccountDataMutation()) return;
   if (!_noteModalView || !_noteModalMarkerId) return;
   const val = document.getElementById('modal-note-text').value;
   updateMarker(_noteModalView, _noteModalMarkerId, 'note', val);
@@ -4852,6 +5283,7 @@ function saveNoteModal() {
 }
 
 function handleMarkerClick(view, markerId) {
+  if (!guardAccountDataMutation()) return;
   if (!connectModeView || connectModeView !== view) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   if (!connectFirstMarkerId) {
@@ -4871,6 +5303,7 @@ function handleMarkerClick(view, markerId) {
 }
 
 function startConnectMode(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   connectModeView = view;
   connectFirstMarkerId = null;
@@ -4892,6 +5325,7 @@ function cancelConnect() {
 }
 
 function clearConnections(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   skelPush(view);
   markSessionDraftDirty();
@@ -4912,6 +5346,7 @@ function rerenderSkeletalPanel(view) {
 }
 
 function removeMarker(view, markerId) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   skelPush(view);
   markSessionDraftDirty();
@@ -4926,6 +5361,7 @@ function removeMarker(view, markerId) {
 }
 
 function removeLastMarker(view) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   if (view === 'front') {
     const markers = sessionDraft.skeletalMapMarkersFront || [];
@@ -4946,6 +5382,7 @@ function removeLastMarker(view) {
 }
 
 function updateMarker(view, markerId, field, value) {
+  if (!guardAccountDataMutation()) return;
   if (!ensureCurrentSkeletalEditingContext()) return;
   const markers = view === 'front' ? sessionDraft.skeletalMapMarkersFront : sessionDraft.skeletalMapMarkersBack;
   const m = markers.find(x => x.id === markerId);
@@ -4984,7 +5421,7 @@ function buildSessionTimeline() {
   return `<div class="map-selector-wrap">
     <div class="map-selector-row">
       <label class="map-selector-label" for="skeletal-map-selector">${t('mapDisplayed')}</label>
-      <select id="skeletal-map-selector" class="map-selector-select" onchange="loadTimelineSession(this.value)">${options}</select>
+      <select id="skeletal-map-selector" class="map-selector-select" data-account-view-control="true" onchange="loadTimelineSession(this.value)">${options}</select>
     </div>
     ${previewLabel}
   </div>`;
@@ -5073,6 +5510,8 @@ function loadTimelineSession(sessionId) {
 function renderArchive() {
   const container = document.getElementById('archive-list');
   if (!container) return;
+  const readOnly = isAccountReadOnly();
+  const roAttrs = readOnlyDisabledAttrs();
   const archived = getArchivedClients().sort((a,b) => (b.archivedAt || '').localeCompare(a.archivedAt || ''));
   if (!archived.length) {
     container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🗄️</div><div class="empty-state-title">${x('archiveTitle')}</div><p>${x('archiveEmpty')}</p></div>`;
@@ -5092,8 +5531,8 @@ function renderArchive() {
         <div style="margin-top:5px;">${(c.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join(' ')}</div>
       </div>
       <div class="client-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-secondary btn-sm" onclick="updateClientStatus('${c.id}','active')">${x('restoreActive')}</button>
-        <button class="btn btn-danger btn-sm btn-icon" onclick="trashClient('${c.id}')">🗑️</button>
+        <button class="btn btn-secondary btn-sm" onclick="updateClientStatus('${c.id}','active')" ${roAttrs}>${x('restoreActive')}</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="trashClient('${c.id}')" ${roAttrs}>🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -5284,6 +5723,7 @@ function openSessionFromGlobal(sessionId) {
 }
 
 function renderTrash() {
+  const roAttrs = readOnlyDisabledAttrs();
   const trashedClients  = appState.clients.filter(c => c.isTrashed);
   const trashedSessions = appState.sessions.filter(s => s.isTrashed);
   let html = '';
@@ -5306,8 +5746,8 @@ function renderTrash() {
           <div class="trash-meta">${t('deletedOn')} ${trashedDate} · ${sessStr}</div>
         </div>
         <div class="btn-group">
-          <button class="btn btn-secondary btn-sm" data-action="restore-client" data-id="${c.id}">${t('restoreBtn')}</button>
-          <button class="btn btn-danger btn-sm" data-action="delete-client-forever" data-id="${c.id}">${t('deleteForeverBtn')}</button>
+          <button class="btn btn-secondary btn-sm" data-action="restore-client" data-id="${c.id}" ${roAttrs}>${t('restoreBtn')}</button>
+          <button class="btn btn-danger btn-sm" data-action="delete-client-forever" data-id="${c.id}" ${roAttrs}>${t('deleteForeverBtn')}</button>
         </div>
       </div>`;
     }).join('');
@@ -5329,8 +5769,8 @@ function renderTrash() {
           <div class="trash-meta">${t('sessionDateLabel')}: ${s.date} · ${t('deletedOn')} ${trashedDate}${s.studentRequestGoal ? ' · ' + esc(s.studentRequestGoal.substring(0,50)) : ''}</div>
         </div>
         <div class="btn-group">
-          <button class="btn btn-secondary btn-sm" data-action="restore-session" data-id="${s.id}">${t('restoreBtn')}</button>
-          <button class="btn btn-danger btn-sm" data-action="delete-session-forever" data-id="${s.id}">${t('deleteForeverBtn')}</button>
+          <button class="btn btn-secondary btn-sm" data-action="restore-session" data-id="${s.id}" ${roAttrs}>${t('restoreBtn')}</button>
+          <button class="btn btn-danger btn-sm" data-action="delete-session-forever" data-id="${s.id}" ${roAttrs}>${t('deleteForeverBtn')}</button>
         </div>
       </div>`;
     }).join('');
@@ -5355,30 +5795,33 @@ function renderTrash() {
 }
 
 function restoreSession(sessionId) {
+  if (!guardAccountDataMutation()) return;
   try {
     const idx = appState.sessions.findIndex(s => s.id === sessionId);
     if (idx !== -1) {
       appState.sessions[idx].isTrashed = false;
       appState.sessions[idx].trashedAt = null;
     }
-    saveState();
+    saveState({ purpose: 'account-mutation' });
     showToast(t('sessionRestored'), 'success');
     renderTrash();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
 function deleteSessionForever(sessionId) {
+  if (!guardAccountDataMutation()) return;
   const deletingCurrentSession = currentSessionId === sessionId;
   if (deletingCurrentSession && !confirmDiscardUnsavedSessionChanges()) return;
   if (deletingCurrentSession) clearSkeletalPreview();
   appState.sessions = appState.sessions.filter(s => s.id !== sessionId);
-  saveState();
+  saveState({ purpose: 'account-mutation' });
   if (currentSessionId === sessionId) { currentSessionId = null; clearSessionDraftBaseline(); persistClientProfileContext(currentClientId); }
   showToast(t('sessionDeleted'), 'success');
   renderTrash();
 }
 
 function restoreClient(clientId) {
+  if (!guardAccountDataMutation()) return;
   try {
     const idx = appState.clients.findIndex(c => c.id === clientId);
     if (idx === -1) return;
@@ -5394,7 +5837,7 @@ function restoreClient(clientId) {
 
     appState.clients[idx].isTrashed = false;
     appState.clients[idx].trashedAt = null;
-    saveState();
+    saveState({ purpose: 'account-mutation' });
     showToast(t('clientRestored'), 'success');
     renderTrash();
     renderClients();
@@ -5403,13 +5846,16 @@ function restoreClient(clientId) {
 }
 
 function confirmDeleteForever(clientId) {
+  if (!guardAccountDataMutation()) return;
   if (currentClientId === clientId && !confirmDiscardUnsavedSessionChanges()) return;
   deleteForeverTargetId = clientId;
   document.getElementById('confirm-delete-cb').checked = false;
   openModal('modal-delete-forever');
+  syncDeleteForeverModalReadOnlyState();
 }
 
 function executeDeleteForever() {
+  if (!guardAccountDataMutation()) return;
   if (!document.getElementById('confirm-delete-cb').checked) {
     showToast(t('confirmCheckbox'), 'error'); return;
   }
@@ -5418,7 +5864,7 @@ function executeDeleteForever() {
     appState.clients = appState.clients.filter(c => c.id !== deleteForeverTargetId);
     appState.sessions = appState.sessions.filter(s => s.clientId !== deleteForeverTargetId);
     if (deletingCurrentClient) { currentClientId = null; currentSessionId = null; clearSessionDraftBaseline(); persistGenericNavigationContext('clients'); }
-    saveState();
+    saveState({ purpose: 'account-mutation' });
     showToast(t('clientDeleted'), 'success');
     closeModal('modal-delete-forever');
     renderTrash();
@@ -5440,22 +5886,33 @@ function exportJSON() {
 }
 
 function importJSON(input) {
+  if (!guardAccountDataMutation()) { input.value = ''; return; }
   const file = input.files[0];
   if (!file) return;
   if (!window.confirm(t('importConfirm'))) { input.value = ''; return; }
   const reader = new FileReader();
   reader.onload = e => {
+    const previousState = JSON.parse(JSON.stringify(appState));
     try {
+      if (!guardAccountDataMutation()) { input.value = ''; return; }
       const parsed = JSON.parse(e.target.result);
       appState = { clients: parsed.clients || [], sessions: parsed.sessions || [], ui: parsed.ui || {} };
       normalizeState();
-      saveState();
+      if (!saveState({ purpose: 'account-mutation' })) {
+        appState = previousState;
+        input.value = '';
+        return;
+      }
       showToast(t('dataImported'), 'success');
       renderClients();
-    } catch(err) { showToast('Import error: ' + err.message, 'error'); }
+    } catch(err) {
+      appState = previousState;
+      showToast('Import error: ' + err.message, 'error');
+    } finally {
+      input.value = '';
+    }
   };
   reader.readAsText(file);
-  input.value = '';
 }
 
 function exportCSV() {
@@ -6606,6 +7063,7 @@ async function onSignedIn(user, options = {}) {
   hideAuthScreen();
   flushPendingCheckoutToast();
   if (!isOnline) updateSyncIndicator();
+  applyAccountAccessUiState(accountAccessState, { silent: true });
 }
 
 // ════════════════════════════════════════════════════════
