@@ -4701,6 +4701,21 @@ function editSession(sessionId, options = {}) {
   return true;
 }
 
+function clearSessionMetric(metricKey, button) {
+  if (!guardAccountDataMutation()) return;
+  if (!sessionDraft.metrics || typeof sessionDraft.metrics !== 'object') sessionDraft.metrics = {};
+  markSessionDraftDirty();
+  sessionDraft.metrics[metricKey] = null;
+
+  const valueEl = document.getElementById(`sv-${metricKey}`);
+  if (valueEl) valueEl.textContent = '–';
+
+  const slider = button
+    ?.closest('.slider-wrap')
+    ?.querySelector('input[type="range"]');
+  if (slider) slider.value = '5';
+}
+
 function renderSessionEditor() {
   try {
     const c = appState.clients.find(x => x.id === (sessionDraft.clientId || currentClientId));
@@ -4741,7 +4756,7 @@ function renderSessionEditor() {
             oninput="if(canMutateAccountData()){sessionDraft.metrics['${f.key}']=parseInt(this.value);document.getElementById('sv-${f.key}').textContent=this.value;}">
         </div>
         <span class="slider-val" id="sv-${f.key}">${displayVal}</span>
-        <button type="button" class="btn btn-ghost btn-sm" data-account-mutation-control="true" ${controlDisabled} style="font-size:10px;padding:2px 6px;" onclick="if(canMutateAccountData()){markSessionDraftDirty();sessionDraft.metrics['${f.key}']=null;document.getElementById('sv-${f.key}').textContent='–';this.previousElementSibling.previousElementSibling.value=5;}" title="Clear">✕</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-account-mutation-control="true" ${controlDisabled} style="font-size:10px;padding:2px 6px;" onclick="clearSessionMetric('${f.key}', this)" title="Clear">✕</button>
       </div>`;
     }).join('');
 
