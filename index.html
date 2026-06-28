@@ -3046,8 +3046,10 @@ function syncSessionEditorMutationState() {
   container.querySelectorAll('input, textarea, select').forEach(el => {
     const independentlyBlocked = isHistoricalPreviewElement(el);
     if (el.tagName === 'SELECT') {
-      setAccountAccessDisabledState(el, mutationBlocked, independentlyBlocked);
-      if (!mutationBlocked && !independentlyBlocked) {
+      const viewOnlyBlocked = el.dataset.accountViewControl === 'true' && !canMutateAccountData() && !isAccountReadOnly();
+      const blocked = el.dataset.accountViewControl === 'true' ? viewOnlyBlocked : mutationBlocked;
+      setAccountAccessDisabledState(el, blocked, independentlyBlocked);
+      if (!blocked && !independentlyBlocked) {
         el.disabled = false;
         el.removeAttribute('aria-disabled');
       }
@@ -5419,7 +5421,7 @@ function buildSessionTimeline() {
   return `<div class="map-selector-wrap">
     <div class="map-selector-row">
       <label class="map-selector-label" for="skeletal-map-selector">${t('mapDisplayed')}</label>
-      <select id="skeletal-map-selector" class="map-selector-select" onchange="loadTimelineSession(this.value)">${options}</select>
+      <select id="skeletal-map-selector" class="map-selector-select" data-account-view-control="true" onchange="loadTimelineSession(this.value)">${options}</select>
     </div>
     ${previewLabel}
   </div>`;
