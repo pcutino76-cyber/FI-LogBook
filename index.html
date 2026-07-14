@@ -48,7 +48,7 @@
   } catch(e) {}
 
   if (canReadSelectedAuthStorage && !hasSelectedAccessToken && !hasRecoveryState) {
-    root.setAttribute('data-initial-route', 'anonymous-login');
+    root.setAttribute('data-initial-route', 'public-home');
   }
 })();
 </script>
@@ -146,8 +146,53 @@ body {
   text-align: center;
   transition: opacity 0.16s ease, visibility 0.16s ease;
 }
-html[data-initial-route="anonymous-login"] #startup-screen { display: none !important; }
+html[data-initial-route="public-home"] #startup-screen { display: none !important; }
 #startup-screen.startup-exiting { opacity: 0; visibility: hidden; pointer-events: none; }
+/* ─── PUBLIC SHELL ─── */
+#public-shell {
+  display: none;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  color: var(--text);
+  flex-direction: column;
+}
+#public-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.public-brand { font-family: var(--font-serif); font-size: 24px; font-style: italic; color: var(--accent); line-height: 1; }
+.public-tagline { font-family: var(--font-sans); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text3); margin-top: 4px; }
+.public-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.public-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.public-nav .btn { font-size: 12px; }
+#public-main { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 44px 0 56px; flex: 1; }
+.public-view { display: none; }
+.public-view.active { display: block; }
+.public-hero { max-width: 760px; margin: 0 auto; text-align: center; }
+.public-title { font-family: var(--font-serif); font-size: clamp(44px, 8vw, 72px); font-weight: 300; font-style: italic; line-height: 0.95; color: var(--accent); margin-bottom: 18px; }
+.public-subtitle { font-family: var(--font-serif); font-size: clamp(24px, 4vw, 34px); line-height: 1.18; color: var(--text); margin-bottom: 18px; }
+.public-intro { font-size: 16px; line-height: 1.7; color: var(--text2); max-width: 680px; margin: 0 auto 28px; }
+.public-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.public-note { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
+.public-guide-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.public-guide-title { font-family: var(--font-serif); font-size: 42px; font-style: italic; color: var(--accent); line-height: 1; }
+.public-guide-subtitle { font-size: 14px; color: var(--text2); margin-top: 8px; line-height: 1.5; max-width: 620px; }
+@media (max-width: 640px) {
+  #public-header { align-items: flex-start; flex-direction: column; padding: 16px; }
+  .public-controls { width: 100%; justify-content: space-between; }
+  .public-nav { width: 100%; }
+  .public-nav .btn { flex: 1; }
+  #public-main { padding-top: 32px; }
+}
+
 .startup-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; transform: translateY(-1vh); }
 .startup-brand {
   font-family: Georgia, "Times New Roman", serif; font-size: 38px; font-weight: 400;
@@ -1350,6 +1395,52 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
+
+<div id="public-shell" aria-live="polite">
+  <header id="public-header">
+    <div>
+      <div class="public-brand">FI Logbook</div>
+      <div class="public-tagline" id="public-header-subtitle">—</div>
+    </div>
+    <div class="public-controls">
+      <button id="public-theme-btn" onclick="cycleTheme()" title="Toggle theme">◐</button>
+      <div class="btn-group" style="gap:6px;margin-left:0;">
+        <button class="lang-btn" id="public-lang-btn-it" onclick="setLang('it')" title="Italiano" aria-label="Italiano">IT</button>
+        <button class="lang-btn" id="public-lang-btn-en" onclick="setLang('en')" title="English" aria-label="English">EN</button>
+      </div>
+      <div class="public-nav">
+        <button class="btn btn-ghost btn-sm" id="public-nav-home-btn" onclick="showPublicView('home')">—</button>
+        <button class="btn btn-secondary btn-sm" id="public-nav-guide-btn" onclick="showPublicView('guide')">—</button>
+        <button class="btn btn-primary btn-sm" id="public-nav-auth-btn" onclick="openAuthFromPublic('login')">—</button>
+      </div>
+    </div>
+  </header>
+  <main id="public-main">
+    <section class="public-view active" id="public-view-home">
+      <div class="public-hero">
+        <h1 class="public-title" id="public-home-title">—</h1>
+        <div class="public-subtitle" id="public-home-subtitle">—</div>
+        <p class="public-intro" id="public-home-intro">—</p>
+        <div class="public-actions">
+          <button class="btn btn-primary" id="public-signin-btn" onclick="openAuthFromPublic('login')">—</button>
+          <button class="btn btn-secondary" id="public-read-guide-btn" onclick="showPublicView('guide')">—</button>
+        </div>
+        <p class="public-note" id="public-home-note">—</p>
+      </div>
+    </section>
+    <section class="public-view" id="public-view-guide">
+      <div class="public-guide-header">
+        <div>
+          <div class="public-guide-title" id="public-guide-title">—</div>
+          <div class="public-guide-subtitle" id="public-guide-subtitle">—</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="public-back-home-btn" onclick="showPublicView('home')">—</button>
+      </div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:14px;" id="public-guide-content"></div>
+    </section>
+  </main>
+</div>
+
 <div id="app-shell" style="display:none;flex-direction:column;height:100%;min-height:100vh;">
 <!-- HEADER -->
 <header id="header">
@@ -1859,6 +1950,19 @@ const STRINGS = {
     homeSeparator: 'OR',
     homeSecondaryBtn: 'Read the guide',
     homeSecondarySupport: '(To learn more about the app’s features and how everything is organised.)',
+    publicHeaderSubtitle: 'Feldenkrais · Functional Integration',
+    publicHomeNav: 'Home',
+    publicGuideNav: 'Guide',
+    publicAuthNav: 'Sign in',
+    publicHomeTitle: 'FI Logbook',
+    publicHomeSubtitle: 'A professional workspace for documenting and reflecting on Functional Integration sessions.',
+    publicHomeIntro: 'Organize clients, sessions, observations, follow-up notes, and skeletal maps in an environment designed for Feldenkrais practice.',
+    publicPrimaryCta: 'Sign in / Create account',
+    publicSecondaryCta: 'Read the guide',
+    publicHomeNote: 'You can read the guide before creating an account.',
+    publicGuideTitle: 'Guide',
+    publicGuideSubtitle: 'A public overview of FI Logbook before entering the private workspace.',
+    publicBackHome: 'Back to welcome',
     // Clients view
     clientsTitle: 'Clients', clientsSubtitle: 'Clients in active workspace',
     btnAddClient: '＋ Add Client',
@@ -2073,6 +2177,19 @@ const STRINGS = {
     homeSeparator: 'OPPURE',
     homeSecondaryBtn: 'Consulta la guida',
     homeSecondarySupport: '(Per conoscere meglio tutte le funzioni dell’app e il modo in cui è organizzata.)',
+    publicHeaderSubtitle: 'Feldenkrais · Integrazione Funzionale',
+    publicHomeNav: 'Home',
+    publicGuideNav: 'Guida',
+    publicAuthNav: 'Accedi',
+    publicHomeTitle: 'FI Logbook',
+    publicHomeSubtitle: 'Uno spazio di lavoro professionale per documentare e ripensare le sessioni di Integrazione Funzionale.',
+    publicHomeIntro: 'Organizza allievi, sessioni, osservazioni, follow-up e mappe scheletriche in un ambiente pensato per la pratica Feldenkrais.',
+    publicPrimaryCta: 'Accedi / Crea account',
+    publicSecondaryCta: 'Leggi la guida',
+    publicHomeNote: 'Puoi leggere la guida prima di creare un account.',
+    publicGuideTitle: 'Guida',
+    publicGuideSubtitle: 'Una panoramica pubblica di FI Logbook prima di entrare nello spazio di lavoro privato.',
+    publicBackHome: 'Torna al benvenuto',
     clientsTitle: 'Allievi', clientsSubtitle: 'Clienti nello spazio attivo',
     btnAddClient: '＋ Aggiungi Allievo',
     clientSearchPlaceholder: 'Cerca per nome o etichetta…',
@@ -2332,10 +2449,32 @@ function setLang(lang) {
     }
     renderHelpContent();
   }
+  renderPublicGuideContent();
 }
 
 function applyTranslations() {
   const s = STRINGS[currentLang] || STRINGS.en;
+
+  // Public shell
+  const publicTextMap = {
+    'public-header-subtitle': 'publicHeaderSubtitle',
+    'public-nav-home-btn': 'publicHomeNav',
+    'public-nav-guide-btn': 'publicGuideNav',
+    'public-nav-auth-btn': 'publicAuthNav',
+    'public-home-title': 'publicHomeTitle',
+    'public-home-subtitle': 'publicHomeSubtitle',
+    'public-home-intro': 'publicHomeIntro',
+    'public-signin-btn': 'publicPrimaryCta',
+    'public-read-guide-btn': 'publicSecondaryCta',
+    'public-home-note': 'publicHomeNote',
+    'public-guide-title': 'publicGuideTitle',
+    'public-guide-subtitle': 'publicGuideSubtitle',
+    'public-back-home-btn': 'publicBackHome'
+  };
+  Object.entries(publicTextMap).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = s[key];
+  });
 
   // Header
   document.getElementById('header-subtitle').textContent = s.headerSubtitle;
@@ -2522,10 +2661,12 @@ function applyTranslations() {
     const btnApp    = document.getElementById('lang-btn-' + lang);
     const btnAuth   = document.getElementById('auth-lang-btn-' + lang);
     const btnHeader = document.getElementById('header-lang-btn-' + lang);
+    const btnPublic = document.getElementById('public-lang-btn-' + lang);
     const btnReset  = document.getElementById('reset-lang-btn-' + lang);
     if (btnApp)    btnApp.classList.toggle('active', lang === currentLang);
     if (btnAuth)   btnAuth.classList.toggle('active', lang === currentLang);
     if (btnHeader) btnHeader.classList.toggle('active', lang === currentLang);
+    if (btnPublic) btnPublic.classList.toggle('active', lang === currentLang);
     if (btnReset)  btnReset.classList.toggle('active', lang === currentLang);
   });
 
@@ -2567,8 +2708,8 @@ function applyTranslations() {
   document.getElementById('help-subtitle').textContent = s.helpSubtitle;
 }
 
-function renderHelpContent() {
-  const container = document.getElementById('help-content');
+function renderHelpContent(targetId = 'help-content') {
+  const container = document.getElementById(targetId);
   if (!container) return;
   const isIT = currentLang === 'it';
   // CLOSED TEST REFINEMENT: make limits, trust, and existing navigation tools easier to understand
@@ -2613,6 +2754,10 @@ const PREMIUM_CHECK_FN_PATH = 'premium-check';
 
 let _accessToken  = null;
 let _refreshToken = null;
+function renderPublicGuideContent() {
+  renderHelpContent('public-guide-content');
+}
+
 let currentUser   = null;
 let passwordRecoveryActive = false;
 let passwordRecoverySessionReady = false;
@@ -3279,7 +3424,7 @@ async function authSignOut() {
   const confEl = document.getElementById('auth-confirm');
   if (pwEl)   { pwEl.value   = ''; }
   if (confEl) { confEl.value = ''; }
-  showAuthScreen();
+  showPublicShell('home');
   switchAuthTab('login');
 }
 
@@ -3673,6 +3818,7 @@ function canCreateSessionForClient(clientId, editingSessionId = null) {
 
 const NAV_CONTEXT_VERSION = 1;
 const RESTORABLE_GENERIC_VIEWS = new Set(['home','clients','all-sessions','archive','trash','backup','settings','search','help']);
+const AUTHENTICATED_VIEWS = new Set(['home','help','clients','all-sessions','archive','trash','backup','settings','search','profile','session']);
 
 function getNavContextStorageKey(userId = currentUser?.id) {
   return userId ? `fi_logbook_nav_v1_${userId}` : null;
@@ -4061,6 +4207,10 @@ function resetSessionViewScrollAfterOpen() {
 
 function showView(name, options = {}) {
   const { skipUnsavedGuard = false, skipContextWrite = false } = options;
+  if (!currentUser && AUTHENTICATED_VIEWS.has(name)) {
+    showPublicShell('home');
+    return false;
+  }
   const activeView = document.querySelector('.view.active')?.id.replace('view-', '');
   if (!skipUnsavedGuard && activeView === 'session' && name !== 'session' && !confirmDiscardUnsavedSessionChanges()) return false;
   if (activeView === 'session' && name !== 'session') clearSkeletalPreview();
@@ -6959,14 +7109,14 @@ async function resolveInitialUiState() {
   const attemptId = ++initialUiRoutingAttempt;
   initialUiRoutingComplete = false;
   initialAuthSucceeded = false;
-  const isKnownAnonymousRoute = document.documentElement.getAttribute('data-initial-route') === 'anonymous-login';
+  const isKnownAnonymousRoute = document.documentElement.getAttribute('data-initial-route') === 'public-home';
   if (!isKnownAnonymousRoute) showStartupScreen();
 
   const isActiveAttempt = () => attemptId === initialUiRoutingAttempt && !initialUiRoutingComplete;
 
   let authFallbackTimer = setTimeout(() => {
     if (!isActiveAttempt() || initialAuthSucceeded || passwordRecoveryActive) return;
-    showAuthScreen({ hideStartup: true });
+    showPublicShell('home');
     initialUiRoutingComplete = true;
   }, 12000);
 
@@ -6984,7 +7134,7 @@ async function resolveInitialUiState() {
     if (!_accessToken) {
       clearTimeout(authFallbackTimer);
       if (!isActiveAttempt()) return;
-      showAuthScreen({ hideStartup: true });
+      showPublicShell('home');
       initialUiRoutingComplete = true;
       return;
     }
@@ -7003,7 +7153,7 @@ async function resolveInitialUiState() {
 
     clearTimeout(authFallbackTimer);
     if (!isActiveAttempt()) return;
-    showAuthScreen({ hideStartup: true });
+    showPublicShell('home');
     initialUiRoutingComplete = true;
   } catch(initErr) {
     clearTimeout(authFallbackTimer);
@@ -7013,11 +7163,47 @@ async function resolveInitialUiState() {
   }
 }
 
+function showPublicView(view = 'home') {
+  const safeView = view === 'guide' ? 'guide' : 'home';
+  document.querySelectorAll('#public-shell .public-view').forEach(v => v.classList.remove('active'));
+  const viewEl = document.getElementById('public-view-' + safeView);
+  if (viewEl) viewEl.classList.add('active');
+  if (safeView === 'guide') renderPublicGuideContent();
+}
+
+function hidePublicShell() {
+  const ps = document.getElementById('public-shell');
+  if (ps) ps.style.display = 'none';
+}
+
+function showPublicShell(view = 'home') {
+  const ps = document.getElementById('public-shell');
+  const as = document.getElementById('auth-screen');
+  const sh = document.getElementById('app-shell');
+  const bl = document.getElementById('btn-logout');
+  currentUser = null;
+  if (ps) ps.style.display = 'flex';
+  if (as) as.style.display = 'none';
+  if (sh) sh.style.display = 'none';
+  if (bl) bl.style.display = 'none';
+  updateHeaderUserBadge();
+  showPublicView(view);
+  syncCredentialFieldVisibilityState();
+  hideStartupScreen();
+}
+
+function openAuthFromPublic(mode = 'login') {
+  hidePublicShell();
+  showAuthScreen({ clearCredentials: false });
+  switchAuthTab(mode === 'signup' ? 'signup' : 'login');
+}
+
 function showAuthScreen(options = {}) {
   const { clearCredentials = true, hideStartup = false } = options;
   const as = document.getElementById('auth-screen');
   const sh = document.getElementById('app-shell');
   const bl = document.getElementById('btn-logout');
+  hidePublicShell();
   if (as) as.style.display = 'flex';
   if (sh) sh.style.display = 'none';
   if (bl) bl.style.display = 'none';
@@ -7036,6 +7222,7 @@ function showAuthScreen(options = {}) {
 }
 
 function hideAuthScreen() {
+  hidePublicShell();
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
   document.getElementById('btn-logout').style.display = '';
