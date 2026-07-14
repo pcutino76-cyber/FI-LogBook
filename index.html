@@ -151,7 +151,10 @@ html[data-initial-route="public-home"] #startup-screen { display: none !importan
 /* ─── PUBLIC SHELL ─── */
 #public-shell {
   display: none;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg);
   color: var(--text);
   flex-direction: column;
