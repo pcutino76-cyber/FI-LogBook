@@ -1811,6 +1811,10 @@ input[type=range]::-webkit-slider-thumb {
       <div style="font-family:var(--font-sans);font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--text3);" id="auth-subtitle">—</div>
     </div>
 
+    <div style="text-align:center;margin-bottom:16px;">
+      <button class="btn btn-ghost btn-sm" id="auth-back-public-btn" onclick="showPublicShell('home')" type="button" style="font-size:12px;">—</button>
+    </div>
+
     <!-- Lang selector on auth screen -->
     <div style="display:flex;justify-content:center;gap:8px;margin-bottom:16px;">
       <button class="lang-btn" id="auth-lang-btn-it" onclick="setLang('it')">🇮🇹 Italiano</button>
@@ -1943,13 +1947,13 @@ const STRINGS = {
     btnLogout: 'Sign out',
     userBadgeFallback: 'Account',
     // Home view
-    homeTitle: 'Welcome to FI Logbook',
-    homeIntro: 'A professional workspace for organising clients and sessions and supporting continuity in your Functional Integration practice.',
-    homePrimaryBtn: 'Enter FI Logbook',
-    homePrimarySupport: 'You can explore the app freely: every section remains available from the main navigation.',
+    homeTitle: 'You’re in FI Logbook',
+    homeIntro: 'This is your private workspace. Start by creating a client card, reading the guide, or exploring the main sections from the navigation.',
+    homePrimaryBtn: 'Go to clients',
+    homePrimarySupport: 'From there you can create your first card and open new sessions.',
     homeSeparator: 'OR',
     homeSecondaryBtn: 'Read the guide',
-    homeSecondarySupport: '(To learn more about the app’s features and how everything is organised.)',
+    homeSecondarySupport: '(Use it to orient yourself across clients, sessions, skeletal maps, backup, and settings.)',
     publicHeaderSubtitle: 'Feldenkrais · Functional Integration',
     publicHomeNav: 'Home',
     publicGuideNav: 'Guide',
@@ -1963,6 +1967,7 @@ const STRINGS = {
     publicGuideTitle: 'Guide',
     publicGuideSubtitle: 'Operational features require an account. This guide is meant to help you understand FI Logbook’s structure before signing in.',
     publicBackHome: 'Back to welcome',
+    authBackToPublic: '← Back to welcome',
     // Clients view
     clientsTitle: 'Clients', clientsSubtitle: 'Clients in active workspace',
     btnAddClient: '＋ Add Client',
@@ -2170,13 +2175,13 @@ const STRINGS = {
     btnLogout: 'Disconnetti',
     userBadgeFallback: 'Utente',
     // Home view
-    homeTitle: 'Benvenuto in FI Logbook',
-    homeIntro: 'Uno spazio professionale per organizzare clienti e sessioni e dare continuità al lavoro di Integrazione Funzionale.',
-    homePrimaryBtn: 'Entra in FI Logbook',
-    homePrimarySupport: 'Puoi esplorare liberamente l’app: tutte le sezioni restano sempre disponibili nella navigazione.',
+    homeTitle: 'Sei dentro FI Logbook',
+    homeIntro: 'Questo è il tuo spazio di lavoro. Puoi iniziare creando una scheda allievo, consultare la guida o esplorare le sezioni dalla navigazione principale.',
+    homePrimaryBtn: 'Vai agli allievi',
+    homePrimarySupport: 'Da lì puoi creare la prima scheda e aprire nuove sessioni.',
     homeSeparator: 'OPPURE',
     homeSecondaryBtn: 'Consulta la guida',
-    homeSecondarySupport: '(Per conoscere meglio tutte le funzioni dell’app e il modo in cui è organizzata.)',
+    homeSecondarySupport: '(Per orientarti tra schede, sessioni, mappa scheletrica, backup e impostazioni.)',
     publicHeaderSubtitle: 'Feldenkrais · Integrazione Funzionale',
     publicHomeNav: 'Home',
     publicGuideNav: 'Guida',
@@ -2190,6 +2195,7 @@ const STRINGS = {
     publicGuideTitle: 'Guida',
     publicGuideSubtitle: 'Le funzioni operative richiedono un account. Questa guida serve a comprendere la struttura di FI Logbook prima dell’accesso.',
     publicBackHome: 'Torna al benvenuto',
+    authBackToPublic: '← Torna al benvenuto',
     clientsTitle: 'Allievi', clientsSubtitle: 'Clienti nello spazio attivo',
     btnAddClient: '＋ Aggiungi Allievo',
     clientSearchPlaceholder: 'Cerca per nome o etichetta…',
@@ -2640,6 +2646,7 @@ function applyTranslations() {
 
   // Auth
   document.getElementById('auth-subtitle').textContent       = s.authSubtitle;
+  document.getElementById('auth-back-public-btn').textContent = s.authBackToPublic;
   document.getElementById('auth-tab-login').textContent      = s.signInTab;
   document.getElementById('auth-tab-signup').textContent     = s.createAccountTab;
   document.getElementById('auth-password-label').textContent = s.passwordLabel;
