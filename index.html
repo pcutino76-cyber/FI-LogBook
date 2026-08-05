@@ -47,7 +47,9 @@
     hasRecoveryState = hasRecoveryType || !!hasRecoveryToken || hasRecoveryError;
   } catch(e) {}
 
-  if (canReadSelectedAuthStorage && !hasSelectedAccessToken && !hasRecoveryState) {
+  var isPrivacyNoteRoute = false;
+  try { isPrivacyNoteRoute = window.location.hash === '#privacy-note'; } catch(e) {}
+  if (canReadSelectedAuthStorage && !hasSelectedAccessToken && !hasRecoveryState && !isPrivacyNoteRoute) {
     root.setAttribute('data-initial-route', 'public-home');
   }
 })();
@@ -182,9 +184,21 @@ html[data-initial-route="public-home"] #startup-screen { display: none !importan
 .public-intro { font-size: 16px; line-height: 1.7; color: var(--text2); max-width: 680px; margin: 0 auto 28px; }
 .public-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .public-note { font-size: 12px; color: var(--text3); font-family: var(--font-mono); }
+.public-privacy-link { display: inline-flex; margin-top: 16px; color: var(--accent); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; }
+.public-privacy-link:hover { color: var(--accent2); }
 .public-guide-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
 .public-guide-title { font-family: var(--font-serif); font-size: 42px; font-style: italic; color: var(--accent); line-height: 1; }
 .public-guide-subtitle { font-size: 14px; color: var(--text2); margin-top: 8px; line-height: 1.5; max-width: 620px; }
+.privacy-note-page { width: min(780px, 100%); margin: 0 auto; }
+.privacy-note-actions { display: flex; justify-content: flex-start; margin: 0 0 22px; }
+.privacy-note-actions.bottom { margin: 28px 0 0; }
+.privacy-note-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: clamp(22px, 5vw, 40px); overflow-wrap: anywhere; }
+.privacy-note-title { font-family: var(--font-serif); font-size: clamp(34px, 7vw, 52px); font-weight: 300; font-style: italic; line-height: 1; color: var(--accent); margin-bottom: 14px; }
+.privacy-note-updated { font-family: var(--font-mono); font-size: 12px; color: var(--text3); margin-bottom: 26px; }
+.privacy-note-content { display: flex; flex-direction: column; gap: 16px; color: var(--text2); font-size: clamp(16px, 2.6vw, 18px); line-height: 1.75; }
+.privacy-note-content h2 { font-family: var(--font-serif); font-size: clamp(24px, 4vw, 30px); font-weight: 400; line-height: 1.15; color: var(--text); margin-top: 12px; }
+.privacy-note-content p { max-width: 100%; white-space: pre-line; }
+.privacy-note-contact { font-family: var(--font-mono); color: var(--accent); overflow-wrap: anywhere; }
 @media (max-width: 640px) {
   #public-header { align-items: flex-start; flex-direction: column; padding: 16px; }
   .public-controls { width: 100%; justify-content: space-between; }
@@ -1426,6 +1440,7 @@ input[type=range]::-webkit-slider-thumb {
           <button class="btn btn-secondary" id="public-read-guide-btn" onclick="showPublicView('guide')">—</button>
         </div>
         <p class="public-note" id="public-home-note">—</p>
+        <a class="public-privacy-link" id="public-privacy-note-link" href="#privacy-note" onclick="showPublicView('privacy-note')">—</a>
       </div>
     </section>
     <section class="public-view" id="public-view-guide">
@@ -1437,6 +1452,21 @@ input[type=range]::-webkit-slider-thumb {
         <button class="btn btn-secondary btn-sm" id="public-back-home-btn" onclick="showPublicView('home')">—</button>
       </div>
       <div style="width:100%;display:flex;flex-direction:column;gap:14px;" id="public-guide-content"></div>
+    </section>
+    <section class="public-view" id="public-view-privacy-note">
+      <div class="privacy-note-page">
+        <div class="privacy-note-actions">
+          <button class="btn btn-secondary" id="privacy-note-back-top" onclick="returnToPublicHome()">—</button>
+        </div>
+        <article class="privacy-note-card" aria-labelledby="privacy-note-title">
+          <h1 class="privacy-note-title" id="privacy-note-title">—</h1>
+          <div class="privacy-note-updated" id="privacy-note-updated">—</div>
+          <div class="privacy-note-content" id="privacy-note-content"></div>
+        </article>
+        <div class="privacy-note-actions bottom">
+          <button class="btn btn-secondary" id="privacy-note-back-bottom" onclick="returnToPublicHome()">—</button>
+        </div>
+      </div>
     </section>
   </main>
 </div>
@@ -1964,9 +1994,13 @@ const STRINGS = {
     publicPrimaryCta: 'Sign in / Create account',
     publicSecondaryCta: 'Read the guide',
     publicHomeNote: 'You can read the guide before creating an account.',
+    publicPrivacyNoteLink: 'Privacy Note',
     publicGuideTitle: 'Guide',
     publicGuideSubtitle: 'Operational features require an account. This guide is meant to help you understand FI Logbook’s structure before signing in.',
     publicBackHome: 'Back to welcome',
+    privacyNoteBack: 'Back',
+    privacyNoteTitle: 'FI LogBook — Privacy Note',
+    privacyNoteUpdated: 'Last updated: August 2026',
     authBackToPublic: '← Back to welcome',
     // Clients view
     clientsTitle: 'Clients', clientsSubtitle: 'Clients in active workspace',
@@ -2192,9 +2226,13 @@ const STRINGS = {
     publicPrimaryCta: 'Accedi / Crea account',
     publicSecondaryCta: 'Leggi la guida',
     publicHomeNote: 'Puoi leggere la guida prima di creare un account.',
+    publicPrivacyNoteLink: 'Nota privacy',
     publicGuideTitle: 'Guida',
     publicGuideSubtitle: 'Le funzioni operative richiedono un account. Questa guida serve a comprendere la struttura di FI Logbook prima dell’accesso.',
     publicBackHome: 'Torna al benvenuto',
+    privacyNoteBack: 'Indietro',
+    privacyNoteTitle: 'FI LogBook — Nota privacy',
+    privacyNoteUpdated: 'Ultimo aggiornamento: Agosto 2026',
     authBackToPublic: '← Torna al benvenuto',
     clientsTitle: 'Allievi', clientsSubtitle: 'Clienti nello spazio attivo',
     btnAddClient: '＋ Aggiungi Allievo',
@@ -2473,14 +2511,18 @@ function applyTranslations() {
     'public-signin-btn': 'publicPrimaryCta',
     'public-read-guide-btn': 'publicSecondaryCta',
     'public-home-note': 'publicHomeNote',
+    'public-privacy-note-link': 'publicPrivacyNoteLink',
     'public-guide-title': 'publicGuideTitle',
     'public-guide-subtitle': 'publicGuideSubtitle',
-    'public-back-home-btn': 'publicBackHome'
+    'public-back-home-btn': 'publicBackHome',
+    'privacy-note-back-top': 'privacyNoteBack',
+    'privacy-note-back-bottom': 'privacyNoteBack'
   };
   Object.entries(publicTextMap).forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (el) el.textContent = s[key];
   });
+  renderPrivacyNoteContent();
 
   // Header
   document.getElementById('header-subtitle').textContent = s.headerSubtitle;
@@ -2761,6 +2803,122 @@ const PREMIUM_CHECK_FN_PATH = 'premium-check';
 
 let _accessToken  = null;
 let _refreshToken = null;
+const PRIVACY_NOTE_SECTIONS = {
+  en: [
+    { type: 'p', text: 'FI LogBook is designed to help practitioners organise their own FI work between individual sessions.' },
+    { type: 'p', text: 'This note explains, in plain language, what kind of information may be stored, why it is stored, and how it is handled.' },
+    { type: 'h2', text: '1. FI LogBook is not an AI tool' },
+    { type: 'p', text: 'FI LogBook is not an AI tool. It is a web app built with standard web technologies such as HTML, CSS, and JavaScript.' },
+    { type: 'p', text: 'AI was used only as a support during parts of the development and writing process, but AI is not embedded in the app itself.' },
+    { type: 'p', text: 'FI LogBook does not use AI to read, analyse, interpret, or train on practitioners’ or clients’ notes.' },
+    { type: 'p', text: 'Reports, where used, are based on the information entered by the practitioner. They are not AI-generated interpretations of the client.' },
+    { type: 'h2', text: '2. Who enters the information' },
+    { type: 'p', text: 'The information inside FI LogBook is entered by the practitioner who creates an account.' },
+    { type: 'p', text: 'FI LogBook does not collect information directly from clients.' },
+    { type: 'p', text: 'Each practitioner decides what to write, how much detail to include, and whether to use full names, initials, codes, or anonymised references.' },
+    { type: 'p', text: 'For privacy reasons, practitioners are encouraged to enter only the information that is useful and appropriate for their own professional context.' },
+    { type: 'h2', text: '3. Where the data is stored' },
+    { type: 'p', text: 'FI LogBook should not be understood as a local-only tool.' },
+    { type: 'p', text: 'The app does not offer a separate offline/local-only mode. When a practitioner creates an account and uses the app while logged in, the data entered in the LogBook is stored online in that practitioner’s workspace, using Supabase as the backend/database provider.' },
+    { type: 'p', text: 'Each account can only access its own workspace data inside the app. One practitioner cannot see another practitioner’s records.' },
+    { type: 'p', text: 'The Export JSON function allows practitioners to keep an independent local backup of their own data, but it does not mean that the app stores data only locally on the computer.' },
+    { type: 'h2', text: '4. What information may be stored' },
+    { type: 'p', text: 'FI LogBook may store practitioner account information, client records created by the practitioner, session notes, observations, homework or suggestions, ideas for future lessons, and reports created by the practitioner.' },
+    { type: 'p', text: 'If the practitioner chooses to use the extended version, FI LogBook may also store subscription-related status information.' },
+    { type: 'p', text: 'FI LogBook does not require practitioners to enter personally identifiable client information. Practitioners may use initials, codes, or other forms of anonymisation.' },
+    { type: 'h2', text: '5. Why this information is stored' },
+    { type: 'p', text: 'This information is stored only to allow the practitioner to use FI LogBook as a personal professional workspace.' },
+    { type: 'p', text: 'The purpose is to help practitioners keep track of their own FI process over time.' },
+    { type: 'p', text: 'FI LogBook does not sell data.\nFI LogBook does not share data for advertising.\nFI LogBook does not use notes to train AI models.' },
+    { type: 'h2', text: '6. Technical infrastructure and access' },
+    { type: 'p', text: 'FI LogBook uses Supabase for authentication and database infrastructure.' },
+    { type: 'p', text: 'Supabase is a third-party backend provider used to manage account access and app data.' },
+    { type: 'p', text: 'As with most cloud-based tools, a cloud database is not the same as a sealed notebook stored only on a personal computer.' },
+    { type: 'p', text: 'Technical/admin-level access to the backend may exist when necessary for maintenance, troubleshooting, security, account-related reasons, or legal/compliance obligations.' },
+    { type: 'p', text: 'This is why practitioners are strongly encouraged to use initials, client codes, or anonymised references whenever possible, and to enter only the level of detail that is appropriate for their own professional and legal context.' },
+    { type: 'p', text: 'FI LogBook may also use Stripe for payments if a practitioner chooses the extended version. Stripe may process payment-related information according to its own legal and privacy obligations.' },
+    { type: 'h2', text: '7. Client information and practitioner responsibility' },
+    { type: 'p', text: 'Because FI LogBook is used by practitioners to organise their own professional records, each practitioner remains responsible for deciding what information is appropriate to enter.' },
+    { type: 'p', text: 'If a practitioner enters sensitive or health-related client information, they should make sure they have the appropriate professional and legal basis to do so.' },
+    { type: 'p', text: 'Practitioners are encouraged to minimise identifiable client data whenever possible.' },
+    { type: 'h2', text: '8. Access and deletion' },
+    { type: 'p', text: 'Each practitioner can access the information stored in their own account.' },
+    { type: 'p', text: 'FI LogBook does not make one practitioner’s records visible to other practitioners.' },
+    { type: 'p', text: 'Practitioners can delete client records and session notes from their own workspace.' },
+    { type: 'p', text: 'If a practitioner wants to request deletion of account-related data, they can contact FI LogBook at:' },
+    { type: 'contact', text: 'support.filogbook@proton.me' },
+    { type: 'p', text: 'Some technical or payment-related records may need to be retained for a limited period where required for security, accounting, legal, or compliance reasons.' },
+    { type: 'h2', text: '9. Contact' },
+    { type: 'p', text: 'For any support request, privacy-related question, data request, or concern, please contact:' },
+    { type: 'contact', text: 'support.filogbook@proton.me' }
+  ],
+  it: [
+    { type: 'p', text: 'FI LogBook è pensato per aiutare i practitioner a organizzare il proprio lavoro FI tra una sessione individuale e l’altra.' },
+    { type: 'p', text: 'Questa nota spiega, con un linguaggio semplice, quali informazioni possono essere conservate, perché vengono conservate e come vengono gestite.' },
+    { type: 'h2', text: '1. FI LogBook non è uno strumento di AI' },
+    { type: 'p', text: 'FI LogBook non è uno strumento di intelligenza artificiale. È una web app costruita con tecnologie web standard come HTML, CSS e JavaScript.' },
+    { type: 'p', text: 'L’intelligenza artificiale è stata usata solo come supporto in alcune parti del processo di sviluppo e scrittura, ma non è incorporata nell’app.' },
+    { type: 'p', text: 'FI LogBook non usa l’AI per leggere, analizzare, interpretare o addestrarsi sulle note dei practitioner o dei clienti.' },
+    { type: 'p', text: 'I report, quando utilizzati, si basano sulle informazioni inserite dal practitioner. Non sono interpretazioni del cliente generate dall’AI.' },
+    { type: 'h2', text: '2. Chi inserisce le informazioni' },
+    { type: 'p', text: 'Le informazioni dentro FI LogBook vengono inserite dal practitioner che crea un account.' },
+    { type: 'p', text: 'FI LogBook non raccoglie informazioni direttamente dai clienti.' },
+    { type: 'p', text: 'Ogni practitioner decide cosa scrivere, quanto dettaglio includere e se usare nomi completi, iniziali, codici o riferimenti anonimizzati.' },
+    { type: 'p', text: 'Per ragioni di privacy, i practitioner sono incoraggiati a inserire solo le informazioni utili e appropriate per il proprio contesto professionale.' },
+    { type: 'h2', text: '3. Dove vengono conservati i dati' },
+    { type: 'p', text: 'FI LogBook non deve essere inteso come uno strumento solo locale.' },
+    { type: 'p', text: 'L’app non offre una modalità separata offline/solo locale. Quando un practitioner crea un account e usa l’app dopo aver effettuato il login, i dati inseriti nel LogBook vengono conservati online nello spazio di lavoro di quel practitioner, usando Supabase come provider backend/database.' },
+    { type: 'p', text: 'Ogni account può accedere solo ai dati del proprio spazio di lavoro all’interno dell’app. Un practitioner non può vedere i dati di un altro practitioner.' },
+    { type: 'p', text: 'La funzione Export JSON permette ai practitioner di conservare una copia locale indipendente dei propri dati, ma non significa che l’app conservi i dati solo localmente sul computer.' },
+    { type: 'h2', text: '4. Quali informazioni possono essere conservate' },
+    { type: 'p', text: 'FI LogBook può conservare informazioni relative all’account del practitioner, schede cliente create dal practitioner, note di sessione, osservazioni, homework o suggerimenti, idee per lezioni future e report creati dal practitioner.' },
+    { type: 'p', text: 'Se il practitioner sceglie di usare la versione estesa, FI LogBook può conservare anche informazioni relative allo stato dell’abbonamento.' },
+    { type: 'p', text: 'FI LogBook non richiede ai practitioner di inserire informazioni identificative dei clienti. È possibile usare iniziali, codici o altre forme di anonimizzazione.' },
+    { type: 'h2', text: '5. Perché queste informazioni vengono conservate' },
+    { type: 'p', text: 'Queste informazioni vengono conservate solo per permettere al practitioner di usare FI LogBook come spazio professionale personale.' },
+    { type: 'p', text: 'Lo scopo è aiutare i practitioner a tenere traccia del proprio processo FI nel tempo.' },
+    { type: 'p', text: 'FI LogBook non vende dati.\nFI LogBook non condivide dati per finalità pubblicitarie.\nFI LogBook non usa le note per addestrare modelli di AI.' },
+    { type: 'h2', text: '6. Infrastruttura tecnica e accesso' },
+    { type: 'p', text: 'FI LogBook usa Supabase per autenticazione e infrastruttura database.' },
+    { type: 'p', text: 'Supabase è un provider backend di terze parti usato per gestire l’accesso agli account e i dati dell’app.' },
+    { type: 'p', text: 'Come accade con la maggior parte degli strumenti basati su cloud, un database cloud non è la stessa cosa di un quaderno sigillato conservato solo su un computer personale.' },
+    { type: 'p', text: 'Un accesso tecnico/amministrativo al backend può esistere quando necessario per manutenzione, risoluzione di problemi, sicurezza, ragioni legate all’account o obblighi legali/compliance.' },
+    { type: 'p', text: 'Per questo i practitioner sono fortemente incoraggiati a usare iniziali, codici cliente o riferimenti anonimizzati ogni volta che è possibile, e a inserire solo il livello di dettaglio appropriato al proprio contesto professionale e legale.' },
+    { type: 'p', text: 'FI LogBook può usare anche Stripe per i pagamenti se un practitioner sceglie la versione estesa. Stripe può trattare informazioni relative ai pagamenti secondo i propri obblighi legali e privacy.' },
+    { type: 'h2', text: '7. Informazioni sui clienti e responsabilità del practitioner' },
+    { type: 'p', text: 'Poiché FI LogBook viene usato dai practitioner per organizzare i propri registri professionali, ogni practitioner resta responsabile di decidere quali informazioni sia appropriato inserire.' },
+    { type: 'p', text: 'Se un practitioner inserisce informazioni sensibili o relative alla salute di un cliente, deve assicurarsi di avere una base professionale e legale adeguata per farlo.' },
+    { type: 'p', text: 'I practitioner sono incoraggiati a minimizzare i dati identificativi dei clienti ogni volta che è possibile.' },
+    { type: 'h2', text: '8. Accesso e cancellazione' },
+    { type: 'p', text: 'Ogni practitioner può accedere alle informazioni conservate nel proprio account.' },
+    { type: 'p', text: 'FI LogBook non rende visibili i dati di un practitioner ad altri practitioner.' },
+    { type: 'p', text: 'I practitioner possono cancellare schede cliente e note di sessione dal proprio spazio di lavoro.' },
+    { type: 'p', text: 'Se un practitioner desidera richiedere la cancellazione dei dati relativi al proprio account, può contattare FI LogBook a:' },
+    { type: 'contact', text: 'support.filogbook@proton.me' },
+    { type: 'p', text: 'Alcuni dati tecnici o relativi ai pagamenti potrebbero dover essere conservati per un periodo limitato quando necessario per ragioni di sicurezza, contabilità, obblighi legali o compliance.' },
+    { type: 'h2', text: '9. Contatto' },
+    { type: 'p', text: 'Per qualsiasi richiesta di supporto, domanda relativa alla privacy, richiesta sui dati o dubbio, contattare:' },
+    { type: 'contact', text: 'support.filogbook@proton.me' }
+  ]
+};
+
+function renderPrivacyNoteContent() {
+  const s = STRINGS[currentLang] || STRINGS.en;
+  const title = document.getElementById('privacy-note-title');
+  const updated = document.getElementById('privacy-note-updated');
+  const content = document.getElementById('privacy-note-content');
+  if (!title || !updated || !content) return;
+  title.textContent = s.privacyNoteTitle;
+  updated.textContent = s.privacyNoteUpdated;
+  content.innerHTML = '';
+  (PRIVACY_NOTE_SECTIONS[currentLang] || PRIVACY_NOTE_SECTIONS.en).forEach(item => {
+    const el = document.createElement(item.type === 'h2' ? 'h2' : 'p');
+    if (item.type === 'contact') el.className = 'privacy-note-contact';
+    el.textContent = item.text;
+    content.appendChild(el);
+  });
+}
+
 function renderPublicGuideContent() {
   renderHelpContent('public-guide-content');
 }
@@ -7116,6 +7274,11 @@ async function resolveInitialUiState() {
   const attemptId = ++initialUiRoutingAttempt;
   initialUiRoutingComplete = false;
   initialAuthSucceeded = false;
+  if (window.location.hash === '#privacy-note') {
+    showPublicShell('privacy-note');
+    initialUiRoutingComplete = true;
+    return;
+  }
   const isKnownAnonymousRoute = document.documentElement.getAttribute('data-initial-route') === 'public-home';
   if (!isKnownAnonymousRoute) showStartupScreen();
 
@@ -7171,11 +7334,20 @@ async function resolveInitialUiState() {
 }
 
 function showPublicView(view = 'home') {
-  const safeView = view === 'guide' ? 'guide' : 'home';
+  const safeView = view === 'guide' || view === 'privacy-note' ? view : 'home';
   document.querySelectorAll('#public-shell .public-view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById('public-view-' + safeView);
   if (viewEl) viewEl.classList.add('active');
   if (safeView === 'guide') renderPublicGuideContent();
+  if (safeView === 'privacy-note') {
+    renderPrivacyNoteContent();
+    if (window.location.hash !== '#privacy-note') window.location.hash = 'privacy-note';
+  }
+  if (safeView === 'home' && window.location.hash === '#privacy-note') {
+    history.pushState('', document.title, window.location.pathname + window.location.search);
+  }
+  const publicMain = document.getElementById('public-main');
+  if (publicMain) publicMain.scrollTop = 0;
 }
 
 function hidePublicShell() {
@@ -7197,6 +7369,10 @@ function showPublicShell(view = 'home') {
   showPublicView(view);
   syncCredentialFieldVisibilityState();
   hideStartupScreen();
+}
+
+function returnToPublicHome() {
+  showPublicShell('home');
 }
 
 function openAuthFromPublic(mode = 'login') {
@@ -7292,6 +7468,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderHelpContent();
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+    window.addEventListener('hashchange', () => {
+      if (window.location.hash === '#privacy-note') showPublicShell('privacy-note');
+    });
 
     const loadingEl = document.getElementById('auth-loading');
     if (loadingEl) loadingEl.style.display = 'none';
